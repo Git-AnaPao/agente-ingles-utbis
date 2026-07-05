@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -15,32 +16,33 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Display the registration view.
-     */
     public function create(): View
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'user_last_name' => ['required', 'string', 'max:255'],
+            'user_cel' => ['required', 'string', 'max:12', 'unique:users,user_cel'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,user_email'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'user_name' => $request->name,
+            'user_last_name' => $request->user_last_name,
+            'user_middle_name' => $request->user_middle_name ?? '',
+            'user_cel' => $request->user_cel,
+            'user_email' => $request->email,
+            'user_password' => Hash::make($request->password),
+            'user_status' => 'active',
         ]);
+
+        $studentRole = Role::where('role_name', 'student')->first();
+        $user->roles()->attach($studentRole->role_id);
 
         event(new Registered($user));
 

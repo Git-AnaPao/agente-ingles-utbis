@@ -1,3 +1,39 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        /* Brand Colors - UTBIS Style Guide */
+        --color-verde-oscuro:    #27594B;
+        --color-verde-aprendizaje: #518C4F;
+        --color-amarillo:        #F2B950;
+        --color-naranja:         #F28729;
+        --color-blanco:          #FFFFFF;
+        --color-gris-claro:      #F2F2F2;
+    }
+
+    html {
+        font-family: 'Inter', sans-serif;
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    .font-display {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+}
+
+@layer components {
+    /* Friendly Tip card - Style Guide §Tarjetas de Feedback */
+    .friendly-tip {
+        @apply rounded-2xl overflow-hidden bg-white shadow-md;
+    }
+    .friendly-tip-header {
+        @apply px-4 py-2 text-sm font-semibold text-white;
+        background-color: var(--color-amarillo);
+    }
+    .friendly-tip-body {
+        @apply px-4 py-3 text-sm text-gray-700;
+        font-family: 'Inter', sans-serif;
+    }
+}
