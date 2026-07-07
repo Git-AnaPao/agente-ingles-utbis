@@ -4,72 +4,286 @@
 
 @layer base {
     :root {
-        --color-primary: #27594B;
-        --color-accent: #518C4F;
-        --color-warning: #F2B950;
-        --color-highlight: #F28729;
-        --color-bg: #F2F2F2;
-        --color-card: #FFFFFF;
-        --color-text: #1f2937;
+        --color-primary: #2D6A4F;
+        --color-primary-light: #40916C;
+        --color-primary-dark: #1B4332;
+        --color-accent: #FF8C6B;
+        --color-accent-light: #FFB499;
+        --color-warning: #FFD166;
+        --color-purple: #7C6FE8;
+        --color-bg: #FAFAF8;
+        --color-card: rgba(255, 255, 255, 0.85);
+        --color-card-border: rgba(255, 255, 255, 0.5);
+        --color-text: #1A1D23;
         --color-text-secondary: #6B7280;
         --color-text-on-primary: #FFFFFF;
         --color-border: #E5E7EB;
+        --color-glass: rgba(255, 255, 255, 0.7);
+        --color-glass-border: rgba(255, 255, 255, 0.3);
+        --color-owl-bg: rgba(45, 106, 79, 0.08);
     }
 
     [data-theme="dark"] {
-        --color-primary: #3b8a76;
-        --color-accent: #5bb85a;
-        --color-warning: #d4a030;
-        --color-highlight: #d97a1e;
-        --color-bg: #0f172a;
-        --color-card: #1e293b;
-        --color-text: #f1f5f9;
-        --color-text-secondary: #94a3b8;
+        --color-primary: #40916C;
+        --color-primary-light: #52B788;
+        --color-primary-dark: #2D6A4F;
+        --color-accent: #FF8C6B;
+        --color-accent-light: #FFB499;
+        --color-warning: #FFD166;
+        --color-purple: #8B7FF0;
+        --color-bg: #0F1117;
+        --color-card: rgba(26, 29, 35, 0.9);
+        --color-card-border: rgba(255, 255, 255, 0.08);
+        --color-text: #F1F5F9;
+        --color-text-secondary: #94A3B8;
         --color-text-on-primary: #FFFFFF;
-        --color-border: #334155;
+        --color-border: #2A2D35;
+        --color-glass: rgba(26, 29, 35, 0.8);
+        --color-glass-border: rgba(255, 255, 255, 0.08);
+        --color-owl-bg: rgba(64, 145, 108, 0.12);
     }
 
     [data-grayscale="true"] {
-        --color-primary: #4b5563;
-        --color-accent: #6b7280;
-        --color-warning: #9ca3af;
-        --color-highlight: #6b7280;
+        --color-primary: #4B5563;
+        --color-primary-light: #6B7280;
+        --color-primary-dark: #374151;
+        --color-accent: #6B7280;
+        --color-accent-light: #9CA3AF;
+        --color-warning: #9CA3AF;
+        --color-purple: #6B7280;
     }
 
     [data-theme="dark"][data-grayscale="true"] {
-        --color-primary: #6b7280;
-        --color-accent: #4b5563;
-        --color-warning: #64748b;
-        --color-highlight: #5a6577;
+        --color-primary: #6B7280;
+        --color-primary-light: #9CA3AF;
+        --color-primary-dark: #4B5563;
+        --color-accent: #6B7280;
+        --color-accent-light: #9CA3AF;
+        --color-warning: #9CA3AF;
+        --color-purple: #6B7280;
     }
+
+    [x-cloak] { display: none !important; }
 
     html {
         font-family: 'Inter', sans-serif;
+        scroll-behavior: smooth;
     }
 
-    * {
-        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    body {
+        background-color: var(--color-bg);
+        color: var(--color-text);
+    }
+
+    *, *::before, *::after {
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
 
     h1, h2, h3, h4, h5, h6,
     .font-display {
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
+
+    ::selection {
+        background-color: var(--color-primary);
+        color: white;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-border);
+        border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-text-secondary);
+    }
 }
 
 @layer components {
+    /* ── Glass card ── */
+    .glass-card {
+        background: var(--color-glass);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--color-glass-border);
+        border-radius: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .glass-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    /* ── Solid card ── */
+    .solid-card {
+        background: var(--color-card);
+        border: 1px solid var(--color-card-border);
+        border-radius: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .solid-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    /* ── Progress bar ── */
+    .progress-bar {
+        @apply h-2 rounded-full overflow-hidden;
+        background: var(--color-border);
+    }
+    .progress-bar-fill {
+        @apply h-full rounded-full transition-all duration-700 ease-out;
+        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    }
+
+    /* ── XP badge ── */
+    .xp-badge {
+        @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold;
+        background: linear-gradient(135deg, var(--color-accent), var(--color-warning));
+        color: white;
+    }
+    .xp-badge:hover {
+        transform: scale(1.05);
+    }
+
+    /* ── Stat pill ── */
+    .stat-pill {
+        @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold;
+        background: var(--color-glass);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--color-glass-border);
+    }
+
+    /* ── Gradient text ── */
+    .gradient-text {
+        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* ── Gamified button ── */
+    .btn-primary {
+        @apply inline-flex items-center justify-center px-6 py-3 rounded-2xl font-bold text-sm text-white shadow-lg transition-all duration-200;
+        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px -8px rgba(45, 106, 79, 0.3);
+    }
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .btn-accent {
+        @apply inline-flex items-center justify-center px-6 py-3 rounded-2xl font-bold text-sm text-white shadow-lg transition-all duration-200;
+        background: linear-gradient(135deg, var(--color-accent), #FF6B4A);
+    }
+    .btn-accent:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px -8px rgba(255, 140, 107, 0.3);
+    }
+    .btn-accent:active {
+        transform: translateY(0);
+    }
+
+    /* ── Friendly Tip (redesigned) ── */
     .friendly-tip {
         @apply rounded-2xl overflow-hidden;
-        background-color: var(--color-card);
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        background: var(--color-card);
+        border: 1px solid var(--color-card-border);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
     .friendly-tip-header {
-        @apply px-4 py-2 text-sm font-semibold text-white;
-        background-color: var(--color-warning);
+        @apply px-4 py-2.5 text-sm font-semibold text-white flex items-center gap-2;
+        background: linear-gradient(135deg, var(--color-warning), var(--color-accent));
     }
     .friendly-tip-body {
-        @apply px-4 py-3 text-sm;
+        @apply px-4 py-3.5 text-sm leading-relaxed;
         color: var(--color-text);
         font-family: 'Inter', sans-serif;
+    }
+
+    /* ── Owl AI assistant container ── */
+    .owl-assistant {
+        @apply fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3;
+    }
+    .owl-avatar {
+        @apply w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg cursor-pointer transition-all duration-300;
+        background: var(--color-owl-bg);
+        border: 2px solid var(--color-primary);
+    }
+    .owl-avatar:hover {
+        transform: scale(1.1) rotate(-5deg);
+        box-shadow: 0 0 30px rgba(45, 106, 79, 0.2);
+    }
+    .owl-tip {
+        @apply px-4 py-3 rounded-2xl text-xs leading-relaxed shadow-lg max-w-xs;
+        background: var(--color-card);
+        border: 1px solid var(--color-card-border);
+        backdrop-filter: blur(12px);
+        animation: slide-up 0.4s ease-out;
+    }
+
+    /* ── Achievement badge ── */
+    .achievement {
+        @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold;
+        background: linear-gradient(135deg, var(--color-warning), var(--color-accent));
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 209, 102, 0.3);
+    }
+
+    /* ── Shimmer loading ── */
+    .shimmer {
+        background: linear-gradient(90deg, var(--color-border) 25%, transparent 50%, var(--color-border) 75%);
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+    }
+
+    /* ── Floating XP toast ── */
+    .xp-toast {
+        @apply fixed top-6 right-6 z-50 animate-slide-up;
+        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+        color: white;
+        @apply px-5 py-3 rounded-2xl shadow-lg text-sm font-bold;
+    }
+}
+
+/* ── Level map connector animations ── */
+@keyframes dash-move {
+    to { stroke-dashoffset: -16; }
+}
+.connector-line {
+    animation: dash-move 1s linear infinite;
+}
+
+/* ── Page transitions ── */
+.page-enter {
+    animation: fade-up 0.5s ease-out;
+}
+
+/* ── Gamified confetti overlay ── */
+.confetti-piece {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    animation: confetti-fall 1.5s ease-out forwards;
+    pointer-events: none;
+    z-index: 100;
+}
+@keyframes confetti-fall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(200px) rotate(720deg) scale(0);
     }
 }

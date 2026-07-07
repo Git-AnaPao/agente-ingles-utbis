@@ -8,6 +8,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('theme', () => ({
         theme: localStorage.getItem('theme') || 'light',
         grayscale: localStorage.getItem('grayscale') === 'true',
+        showOwlTip: false,
         init() {
             this.$watch('theme', val => {
                 localStorage.setItem('theme', val);

@@ -3,6 +3,6 @@
 <input
     @disabled($disabled)
     {{ $attributes->merge([
-        'class' => 'block w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-900 outline-none transition duration-150 focus:border-[var(--color-primary)] focus:bg-white focus:ring-4 focus:ring-[var(--color-primary)]/20 disabled:opacity-60 disabled:cursor-not-allowed',
-        'style' => 'font-family: Inter, sans-serif; background-color: var(--color-bg); border-color: var(--color-border);',
+        'class' => 'block w-full rounded-xl border px-4 py-3 text-sm outline-none transition duration-200 focus:ring-4 focus:ring-[var(--color-primary)]/15 disabled:opacity-60 disabled:cursor-not-allowed',
+        'style' => 'font-family: Inter, sans-serif; background-color: var(--color-bg); border-color: var(--color-border); color: var(--color-text);',
     ]) }}>
