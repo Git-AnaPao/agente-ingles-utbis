@@ -3,7 +3,7 @@
     Verde Oscuro (#27594B) como color estructural principal.
     4 accesos: Dashboard, Chat IA, Lecciones, Perfil.
 --}}
-<nav x-data="{ open: false }" style="background-color:#27594B;">
+<nav x-data="{ open: false }" style="background-color: var(--color-primary);">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
 
@@ -65,7 +65,7 @@
                                 aria-label="Menú de usuario">
                             {{-- Avatar inicial --}}
                             <span class="flex h-7 w-7 items-center justify-center rounded-full font-bold text-xs"
-                                  style="background-color:#518C4F;">
+                                  style="background-color: var(--color-accent); color: white;">
                                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                             </span>
                             <span>{{ Auth::user()->name }}</span>
@@ -87,6 +87,21 @@
                                 {{ __('Perfil') }}
                             </span>
                         </x-dropdown-link>
+
+                        {{-- Tema oscuro --}}
+                        <button @click="toggleTheme" class="w-full text-start">
+                            <x-dropdown-link>
+                                <span class="flex items-center gap-2">
+                                    <template x-if="theme === 'dark'">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                    </template>
+                                    <template x-if="theme !== 'dark'">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                                    </template>
+                                    <span x-text="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'"></span>
+                                </span>
+                            </x-dropdown-link>
+                        </button>
 
                         {{-- Cerrar sesión --}}
                         <form method="POST" action="{{ route('logout') }}">
@@ -121,7 +136,7 @@
     </div>
 
     {{-- Menú responsive --}}
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden" style="background-color:#1e4238;">
+    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden" style="background-color: #1e4238;">
         <div class="pt-2 pb-3 space-y-1 px-2">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 🏠 {{ __('Inicio') }}
@@ -144,10 +159,10 @@
             @endif
         </div>
 
-        <div class="pt-4 pb-3 border-t" style="border-color:#518C4F;">
+        <div class="pt-4 pb-3 border-t" style="border-color: var(--color-accent);">
             <div class="px-4 flex items-center gap-3">
                 <span class="flex h-9 w-9 items-center justify-center rounded-full font-bold text-white"
-                      style="background-color:#518C4F;">
+                      style="background-color: var(--color-accent);">
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                 </span>
                 <div>
@@ -162,6 +177,18 @@
                 <x-responsive-nav-link :href="route('profile.edit')">
                     👤 {{ __('Perfil') }}
                 </x-responsive-nav-link>
+
+                {{-- Tema oscuro (móvil) --}}
+                <button @click="toggleTheme" class="w-full text-start">
+                    <x-responsive-nav-link>
+                        <span class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            </svg>
+                            <span x-text="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'"></span>
+                        </span>
+                    </x-responsive-nav-link>
+                </button>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

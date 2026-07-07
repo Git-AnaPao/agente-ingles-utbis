@@ -41,10 +41,10 @@ class ProgressController extends Controller
             [
                 'student_id' => $user->user_id,
                 'lesson_id' => $lesson->lesson_id,
-                'student_cefr_level' => $lesson->lesson_cefr_level,
-                'student_skill_type' => $lesson->lesson_skill_type,
             ],
             [
+                'student_cefr_level' => $lesson->lesson_cefr_level,
+                'student_skill_type' => $lesson->lesson_skill_type,
                 'student_sub_level' => $lesson->lesson_sub_level,
                 'student_current_status' => 'completed',
             ]
