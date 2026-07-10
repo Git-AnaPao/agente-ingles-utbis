@@ -13,11 +13,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="min-h-screen antialiased" style="background-color:#F2F2F2; font-family:Inter,sans-serif;">
+<body class="min-h-screen antialiased" style="background-color: var(--color-bg); font-family:Inter,sans-serif;">
     <main class="flex min-h-screen items-center justify-center px-4 py-10">
-        <div class="grid w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-2xl md:grid-cols-2">
+        <div class="grid w-full max-w-6xl overflow-hidden rounded-[2rem] shadow-2xl md:grid-cols-2 solid-card">
             
-            <section class="relative flex flex-col justify-between overflow-hidden p-8 text-white md:p-12" style="background-color:#27594B;">
+            <section class="relative flex flex-col justify-between overflow-hidden p-8 text-white md:p-12" style="background-color:var(--color-primary-dark);">
                 <div class="absolute inset-0 opacity-[0.08]" style="background-image:radial-gradient(circle at 20% 20%, white 0 1px, transparent 1px), radial-gradient(circle at 80% 30%, white 0 1px, transparent 1px), radial-gradient(circle at 40% 80%, white 0 1px, transparent 1px); background-size:48px 48px;"></div>
 
                 <div class="relative">
@@ -25,8 +25,8 @@
                         UTBIS · Agente de IA
                     </span>
 
-                    <div class="mt-8 flex items-center gap-4">
-                        <div class="flex h-16 w-16 items-center justify-center rounded-2xl" style="background-color:rgba(255,255,255,0.12);">
+                    <div class="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <div class="flex h-16 w-16 items-center justify-center rounded-2xl shrink-0" style="background-color:rgba(255,255,255,0.12);">
                             <span class="text-4xl" role="img" aria-label="Búho tutor">🦉</span>
                         </div>
                         <div>
@@ -58,19 +58,20 @@
                 </div>
             </section>
 
-            <section class="flex items-center bg-white p-8 md:p-12">
+            <section class="flex items-center p-8 md:p-12" style="background: var(--color-card);">
                 <div class="mx-auto w-full max-w-md">
                     <div class="mb-8">
-                        <h2 class="text-2xl font-bold" style="color:#27594B; font-family:'Plus Jakarta Sans',sans-serif;">
+                        <h2 class="text-2xl font-bold" style="color: var(--color-primary); font-family:'Plus Jakarta Sans',sans-serif;">
                             Iniciar sesión
                         </h2>
-                        <p class="mt-2 text-sm" style="color:#6B7280; font-family:Inter,sans-serif;">
+                        <p class="mt-2 text-sm" style="color: var(--color-text-secondary); font-family:Inter,sans-serif;">
                             Ingresa tus credenciales para continuar tu aprendizaje.
                         </p>
                     </div>
 
                     @if (session('status'))
-                        <div class="mb-5 rounded-2xl border border-[#DDE9DD] px-4 py-3 text-sm font-medium" style="background-color:#EAF5EA; color:#518C4F;">
+                        <div class="mb-5 rounded-2xl border px-4 py-3 text-sm font-medium"
+                             style="border-color: color-mix(in srgb, var(--color-primary) 20%, transparent); background: color-mix(in srgb, var(--color-primary) 8%, transparent); color: var(--color-primary);">
                             {{ session('status') }}
                         </div>
                     @endif
@@ -79,7 +80,7 @@
                         @csrf
 
                         <div>
-                            <label for="email" class="mb-1.5 block text-sm font-medium" style="color:#27594B;">Correo electrónico</label>
+                            <label for="email" class="mb-1.5 block text-sm font-medium" style="color: var(--color-primary);">Correo electrónico</label>
                             <input
                                 id="email"
                                 type="email"
@@ -88,42 +89,48 @@
                                 required
                                 autofocus
                                 autocomplete="username"
-                                class="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition duration-150 placeholder:text-gray-400 focus:border-[#27594B] focus:bg-white focus:ring-4 focus:ring-[#27594B]/10"
+                                class="block w-full rounded-2xl border px-4 py-3 text-sm outline-none transition duration-150"
+                                style="border-color: var(--color-border); background: var(--color-bg); color: var(--color-text);"
                                 placeholder="tu@correo.com"
                             >
                             @error('email')
-                                <p class="mt-2 rounded-xl bg-[#FFF8E8] px-3 py-2 text-xs font-medium text-[#92670A]">
+                                <p class="mt-2 rounded-xl px-3 py-2 text-xs font-medium"
+                                   style="background: color-mix(in srgb, var(--color-warning) 15%, transparent); color: var(--color-accent);">
                                     ⚠️ {{ $message }}
                                 </p>
                             @enderror
                         </div>
 
                         <div>
-                            <label for="password" class="mb-1.5 block text-sm font-medium" style="color:#27594B;">Contraseña</label>
+                            <label for="password" class="mb-1.5 block text-sm font-medium" style="color: var(--color-primary);">Contraseña</label>
                             <input
                                 id="password"
                                 type="password"
                                 name="password"
                                 required
                                 autocomplete="current-password"
-                                class="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition duration-150 placeholder:text-gray-400 focus:border-[#27594B] focus:bg-white focus:ring-4 focus:ring-[#27594B]/10"
+                                class="block w-full rounded-2xl border px-4 py-3 text-sm outline-none transition duration-150"
+                                style="border-color: var(--color-border); background: var(--color-bg); color: var(--color-text);"
                                 placeholder="••••••••"
                             >
                             @error('password')
-                                <p class="mt-2 rounded-xl bg-[#FFF8E8] px-3 py-2 text-xs font-medium text-[#92670A]">
+                                <p class="mt-2 rounded-xl px-3 py-2 text-xs font-medium"
+                                   style="background: color-mix(in srgb, var(--color-warning) 15%, transparent); color: var(--color-accent);">
                                     ⚠️ {{ $message }}
                                 </p>
                             @enderror
                         </div>
 
                         <div class="flex items-center justify-between gap-4 text-sm">
-                            <label class="flex items-center gap-2 text-gray-500">
-                                <input type="checkbox" name="remember" class="h-4 w-4 rounded border-gray-300 accent-[#F28729]">
+                            <label class="flex items-center gap-2" style="color: var(--color-text-secondary);">
+                                <input type="checkbox" name="remember" class="h-4 w-4 rounded"
+                                       style="accent-color: var(--color-accent);">
                                 Recordarme
                             </label>
 
                             @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}" class="font-medium text-[#F28729] transition hover:underline">
+                                <a href="{{ route('password.request') }}" class="font-medium transition hover:underline"
+                                   style="color: var(--color-accent);">
                                     Olvidé mi contraseña
                                 </a>
                             @endif
@@ -131,18 +138,16 @@
 
                         <button
                             type="submit"
-                            class="w-full rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-md transition duration-150 focus:outline-none focus:ring-4 focus:ring-[#F28729]/30 active:scale-[0.99]"
-                            style="background-color:#F28729; font-family:'Plus Jakarta Sans',sans-serif;"
-                            onmouseover="this.style.backgroundColor='#d97320'"
-                            onmouseout="this.style.backgroundColor='#F28729'"
-                        >
+                            class="w-full rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-md transition duration-150 focus:outline-none active:scale-[0.99]"
+                            style="background: linear-gradient(135deg, var(--color-accent), #FF6B4A); font-family:'Plus Jakarta Sans',sans-serif;">
                             Entrar
                         </button>
                     </form>
 
-                    <p class="mt-6 text-center text-sm text-gray-500">
+                    <p class="mt-6 text-center text-sm" style="color: var(--color-text-secondary);">
                         ¿No tienes cuenta?
-                        <a href="{{ route('register') }}" class="font-semibold text-[#27594B] transition hover:underline">
+                        <a href="{{ route('register') }}" class="font-semibold transition hover:underline"
+                           style="color: var(--color-primary);">
                             Crear cuenta
                         </a>
                     </p>

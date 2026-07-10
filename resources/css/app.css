@@ -75,8 +75,9 @@
         color: var(--color-text);
     }
 
-    *, *::before, *::after {
-        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    body,
+    .glass-card, .solid-card, .owl-assistant, .owl-tip {
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
 
     h1, h2, h3, h4, h5, h6,
@@ -213,8 +214,13 @@
     .owl-assistant {
         @apply fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3;
     }
+    @media (max-width: 640px) {
+        .owl-assistant {
+            @apply bottom-4 right-4;
+        }
+    }
     .owl-avatar {
-        @apply w-16 h-16 rounded-full flex items-center justify-center text-3xl shadow-lg cursor-pointer transition-all duration-300;
+        @apply w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-lg cursor-pointer transition-all duration-300;
         background: var(--color-owl-bg);
         border: 2px solid var(--color-primary);
     }

@@ -1,9 +1,9 @@
 <x-guest-layout>
     <div class="mb-6">
-        <h1 class="font-display font-bold text-2xl" style="color:#27594B;">
+        <h1 class="font-display font-bold text-2xl" style="color: var(--color-primary);">
             Crea tu cuenta 🌱
         </h1>
-        <p class="mt-1 text-sm" style="color:#6B7280; font-family:Inter,sans-serif;">
+        <p class="mt-1 text-sm" style="color: var(--color-text-secondary); font-family:Inter,sans-serif;">
             Empieza tu camino hacia el inglés con UTBIS.
         </p>
     </div>
@@ -38,7 +38,7 @@
             <x-text-input id="email" type="email" name="email"
                           :value="old('email')" required autocomplete="username"
                           placeholder="t24xx-xxxx@utbispuebla.edu.mx" />
-            <p class="mt-1 text-xs" style="color:#9CA3AF;">Solo se aceptan correos @utbispuebla.edu.mx</p>
+            <p class="mt-1 text-xs" style="color: var(--color-text-secondary);">Solo se aceptan correos @utbispuebla.edu.mx</p>
             <x-input-error :messages="$errors->get('email')" />
         </div>
 
@@ -61,11 +61,11 @@
         </x-primary-button>
     </form>
 
-    <p class="mt-6 text-center text-sm" style="color:#6B7280; font-family:Inter,sans-serif;">
+    <p class="mt-6 text-center text-sm" style="color: var(--color-text-secondary); font-family:Inter,sans-serif;">
         ¿Ya tienes cuenta?
         <a href="{{ route('login') }}"
            class="font-semibold transition hover:underline"
-           style="color:#27594B;">
+           style="color: var(--color-primary);">
             {{ __('Iniciar sesión') }}
         </a>
     </p>

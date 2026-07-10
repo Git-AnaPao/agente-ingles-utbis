@@ -49,7 +49,12 @@
             </div>
 
             {{-- Horizontal path container --}}
-            <div class="relative overflow-x-auto pb-6 animate-fade-up">
+            <div class="relative animate-fade-up">
+                <div class="sm:hidden absolute top-0 right-0 h-full w-10 pointer-events-none z-10 flex items-center justify-end"
+                     style="background: linear-gradient(to right, transparent, var(--color-bg));">
+                    <span class="text-[10px] font-semibold pr-1" style="color: var(--color-text-secondary);">→</span>
+                </div>
+                <div class="overflow-x-auto pb-6">
                 <div class="flex items-start gap-0 min-w-max px-2">
 
                     @php
@@ -194,6 +199,7 @@
                         @endif
                     @endforeach
 
+                </div>
                 </div>
             </div>
 
