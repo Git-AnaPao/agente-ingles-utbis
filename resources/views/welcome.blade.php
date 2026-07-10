@@ -14,146 +14,228 @@
 </head>
 
 <body class="min-h-screen antialiased" style="background-color: var(--color-bg); font-family:Inter,sans-serif;">
-    <main class="flex min-h-screen items-center justify-center px-4 py-10">
-        <div class="grid w-full max-w-6xl overflow-hidden rounded-[2rem] shadow-2xl md:grid-cols-2 solid-card">
-            
-            <section class="relative flex flex-col justify-between overflow-hidden p-8 text-white md:p-12" style="background-color:var(--color-primary-dark);">
-                <div class="absolute inset-0 opacity-[0.08]" style="background-image:radial-gradient(circle at 20% 20%, white 0 1px, transparent 1px), radial-gradient(circle at 80% 30%, white 0 1px, transparent 1px), radial-gradient(circle at 40% 80%, white 0 1px, transparent 1px); background-size:48px 48px;"></div>
 
-                <div class="relative">
-                    <span class="inline-flex rounded-full px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]" style="background-color:rgba(255,255,255,0.14); font-family:Inter,sans-serif;">
-                        UTBIS · Agente de IA
-                    </span>
-
-                    <div class="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <div class="flex h-16 w-16 items-center justify-center rounded-2xl shrink-0" style="background-color:rgba(255,255,255,0.12);">
-                            <span class="text-4xl" role="img" aria-label="Búho tutor">🦉</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-white/75" style="font-family:Inter,sans-serif;">Asistente de aprendizaje</p>
-                            <h1 class="mt-1 text-3xl font-bold leading-tight md:text-5xl" style="font-family:'Plus Jakarta Sans',sans-serif;">
-                                Aprende inglés de forma simple, clara y constante.
-                            </h1>
-                        </div>
-                    </div>
-
-                    <p class="mt-6 max-w-lg text-base leading-7 text-white/85" style="font-family:Inter,sans-serif;">
-                        Tu tutor virtual te acompaña con lecciones, práctica guiada y feedback amable, adaptado a tu nivel del Marco Común Europeo.
-                    </p>
+    {{-- Navbar --}}
+    <nav class="fixed top-0 inset-x-0 z-50" x-data x-init="$nextTick(() => {})">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center gap-2.5 group" aria-label="Inicio">
+                    <span class="text-2xl transition-transform duration-300 group-hover:scale-110">🦉</span>
+                    <span class="font-display font-bold text-sm" style="color: var(--color-primary);">Agente Inglés</span>
+                </a>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('login') }}"
+                       class="px-4 py-2 rounded-xl text-sm font-semibold transition hover:opacity-80"
+                       style="color: var(--color-primary);">
+                        Iniciar sesión
+                    </a>
+                    <a href="{{ route('register') }}"
+                       class="px-5 py-2 rounded-xl text-sm font-bold text-white shadow-md transition hover:shadow-lg hover:-translate-y-0.5"
+                       style="background: linear-gradient(135deg, var(--color-accent), #FF6B4A);">
+                        Registrarme
+                    </a>
                 </div>
-
-                <div class="relative mt-10 grid gap-3 sm:grid-cols-3">
-                    <div class="rounded-2xl p-4" style="background-color:rgba(255,255,255,0.10);">
-                        <p class="text-xs uppercase tracking-widest text-white/60">Simple</p>
-                        <p class="mt-1 text-sm font-semibold">Sin distracciones</p>
-                    </div>
-                    <div class="rounded-2xl p-4" style="background-color:rgba(255,255,255,0.10);">
-                        <p class="text-xs uppercase tracking-widest text-white/60">Adaptable</p>
-                        <p class="mt-1 text-sm font-semibold">A1 → C2</p>
-                    </div>
-                    <div class="rounded-2xl p-4" style="background-color:rgba(255,255,255,0.10);">
-                        <p class="text-xs uppercase tracking-widest text-white/60">Seguro</p>
-                        <p class="mt-1 text-sm font-semibold">Aprendizaje confiable</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="flex items-center p-8 md:p-12" style="background: var(--color-card);">
-                <div class="mx-auto w-full max-w-md">
-                    <div class="mb-8">
-                        <h2 class="text-2xl font-bold" style="color: var(--color-primary); font-family:'Plus Jakarta Sans',sans-serif;">
-                            Iniciar sesión
-                        </h2>
-                        <p class="mt-2 text-sm" style="color: var(--color-text-secondary); font-family:Inter,sans-serif;">
-                            Ingresa tus credenciales para continuar tu aprendizaje.
-                        </p>
-                    </div>
-
-                    @if (session('status'))
-                        <div class="mb-5 rounded-2xl border px-4 py-3 text-sm font-medium"
-                             style="border-color: color-mix(in srgb, var(--color-primary) 20%, transparent); background: color-mix(in srgb, var(--color-primary) 8%, transparent); color: var(--color-primary);">
-                            {{ session('status') }}
-                        </div>
-                    @endif
-
-                    <form method="POST" action="{{ route('login') }}" class="space-y-5">
-                        @csrf
-
-                        <div>
-                            <label for="email" class="mb-1.5 block text-sm font-medium" style="color: var(--color-primary);">Correo electrónico</label>
-                            <input
-                                id="email"
-                                type="email"
-                                name="email"
-                                value="{{ old('email') }}"
-                                required
-                                autofocus
-                                autocomplete="username"
-                                class="block w-full rounded-2xl border px-4 py-3 text-sm outline-none transition duration-150"
-                                style="border-color: var(--color-border); background: var(--color-bg); color: var(--color-text);"
-                                placeholder="tu@correo.com"
-                            >
-                            @error('email')
-                                <p class="mt-2 rounded-xl px-3 py-2 text-xs font-medium"
-                                   style="background: color-mix(in srgb, var(--color-warning) 15%, transparent); color: var(--color-accent);">
-                                    ⚠️ {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="password" class="mb-1.5 block text-sm font-medium" style="color: var(--color-primary);">Contraseña</label>
-                            <input
-                                id="password"
-                                type="password"
-                                name="password"
-                                required
-                                autocomplete="current-password"
-                                class="block w-full rounded-2xl border px-4 py-3 text-sm outline-none transition duration-150"
-                                style="border-color: var(--color-border); background: var(--color-bg); color: var(--color-text);"
-                                placeholder="••••••••"
-                            >
-                            @error('password')
-                                <p class="mt-2 rounded-xl px-3 py-2 text-xs font-medium"
-                                   style="background: color-mix(in srgb, var(--color-warning) 15%, transparent); color: var(--color-accent);">
-                                    ⚠️ {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <div class="flex items-center justify-between gap-4 text-sm">
-                            <label class="flex items-center gap-2" style="color: var(--color-text-secondary);">
-                                <input type="checkbox" name="remember" class="h-4 w-4 rounded"
-                                       style="accent-color: var(--color-accent);">
-                                Recordarme
-                            </label>
-
-                            @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}" class="font-medium transition hover:underline"
-                                   style="color: var(--color-accent);">
-                                    Olvidé mi contraseña
-                                </a>
-                            @endif
-                        </div>
-
-                        <button
-                            type="submit"
-                            class="w-full rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-md transition duration-150 focus:outline-none active:scale-[0.99]"
-                            style="background: linear-gradient(135deg, var(--color-accent), #FF6B4A); font-family:'Plus Jakarta Sans',sans-serif;">
-                            Entrar
-                        </button>
-                    </form>
-
-                    <p class="mt-6 text-center text-sm" style="color: var(--color-text-secondary);">
-                        ¿No tienes cuenta?
-                        <a href="{{ route('register') }}" class="font-semibold transition hover:underline"
-                           style="color: var(--color-primary);">
-                            Crear cuenta
-                        </a>
-                    </p>
-                </div>
-            </section>
+            </div>
         </div>
-    </main>
+    </nav>
+
+    {{-- Hero --}}
+    <section class="pt-28 pb-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto text-center">
+            <span class="inline-flex rounded-full px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] mb-6"
+                  style="background: color-mix(in srgb, var(--color-primary) 10%, transparent); color: var(--color-primary);">
+                UTBIS · Agente de IA
+            </span>
+
+            <div class="flex justify-center mb-6">
+                <div class="w-24 h-24 rounded-3xl flex items-center justify-center text-6xl animate-float"
+                     style="background: color-mix(in srgb, var(--color-primary) 10%, transparent);">
+                    🦉
+                </div>
+            </div>
+
+            <h1 class="font-display font-extrabold text-4xl sm:text-5xl md:text-6xl leading-tight"
+                style="color: var(--color-text);">
+                Aprende inglés de forma
+                <span class="gradient-text">simple, clara y constante.</span>
+            </h1>
+
+            <p class="mt-6 text-lg leading-relaxed max-w-2xl mx-auto" style="color: var(--color-text-secondary);">
+                Tu tutor virtual te acompaña con lecciones interactivas, práctica guiada y feedback amable, adaptado a tu nivel del Marco Común Europeo (CEFR).
+            </p>
+
+            <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="{{ route('register') }}"
+                   class="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-white text-base shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-1"
+                   style="background: linear-gradient(135deg, var(--color-accent), #FF6B4A); font-family:'Plus Jakarta Sans',sans-serif;">
+                    Comenzar gratis &#x2192;
+                </a>
+                <a href="{{ route('login') }}"
+                   class="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base transition-all duration-200 solid-card hover:shadow-lg hover:-translate-y-0.5"
+                   style="color: var(--color-primary); font-family:'Plus Jakarta Sans',sans-serif;">
+                    Ya tengo cuenta
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {{-- Features --}}
+    <section class="py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="font-display font-bold text-2xl sm:text-3xl" style="color: var(--color-text);">
+                    ¿Por qué Agente Inglés?
+                </h2>
+                <p class="mt-3 text-sm" style="color: var(--color-text-secondary);">
+                    Todo lo que necesitas para mejorar tu inglés en un solo lugar.
+                </p>
+            </div>
+
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {{-- Feature 1 --}}
+                <div class="solid-card p-6 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                         style="background: linear-gradient(135deg, var(--color-accent-light), var(--color-accent));">
+                        🎯
+                    </div>
+                    <h3 class="font-display font-bold text-base mb-2" style="color: var(--color-text);">Test de ubicación CEFR</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                        Evaluación de 75 preguntas para determinar tu nivel real: A1, A2, B1, B2 o C1.
+                    </p>
+                </div>
+
+                {{-- Feature 2 --}}
+                <div class="solid-card p-6 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                         style="background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));">
+                        📚
+                    </div>
+                    <h3 class="font-display font-bold text-base mb-2" style="color: var(--color-text);">Lecciones adaptativas</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                        Contenido organizado por niveles CEFR con lecciones de Grammar, Vocabulary y Reading.
+                    </p>
+                </div>
+
+                {{-- Feature 3 --}}
+                <div class="solid-card p-6 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                         style="background: linear-gradient(135deg, var(--color-purple), #9B8FF0);">
+                        💬
+                    </div>
+                    <h3 class="font-display font-bold text-base mb-2" style="color: var(--color-text);">Tútor IA (búho)</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                        Un asistente inteligente que te guía, resuelve dudas y te da feedback durante tu aprendizaje.
+                    </p>
+                </div>
+
+                {{-- Feature 4 --}}
+                <div class="solid-card p-6 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                         style="background: linear-gradient(135deg, var(--color-warning), var(--color-accent));">
+                        🏆
+                    </div>
+                    <h3 class="font-display font-bold text-base mb-2" style="color: var(--color-text);">Gamificación</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                        Gana XP, sube de nivel, completa insignias y desbloquea logros a medida que avanzas.
+                    </p>
+                </div>
+
+                {{-- Feature 5 --}}
+                <div class="solid-card p-6 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                         style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));">
+                        📊
+                    </div>
+                    <h3 class="font-display font-bold text-base mb-2" style="color: var(--color-text);">Seguimiento de progreso</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                        Profesores y estudiantes visualizan avances, estadísticas y nivel actual en tiempo real.
+                    </p>
+                </div>
+
+                {{-- Feature 6 --}}
+                <div class="solid-card p-6 group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-4"
+                         style="background: linear-gradient(135deg, var(--color-accent), var(--color-warning));">
+                        🔒
+                    </div>
+                    <h3 class="font-display font-bold text-base mb-2" style="color: var(--color-text);">Acceso exclusivo UTBIS</h3>
+                    <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                        Solo usuarios con correo institucional @utbispuebla.edu.mx pueden registrarse.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- CEFR Levels --}}
+    <section class="py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="solid-card p-8 sm:p-10">
+                <div class="text-center mb-8">
+                    <h2 class="font-display font-bold text-2xl sm:text-3xl" style="color: var(--color-text);">
+                        Niveles CEFR que cubrimos
+                    </h2>
+                    <p class="mt-3 text-sm" style="color: var(--color-text-secondary);">
+                        Desde cero hasta nivel avanzado, con un camino claro de aprendizaje.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                    @php
+                        $cefrLevels = [
+                            ['level' => 'A1', 'name' => 'Beginner', 'color' => '#2D6A4F'],
+                            ['level' => 'A2', 'name' => 'Elementary', 'color' => '#40916C'],
+                            ['level' => 'B1', 'name' => 'Intermediate', 'color' => '#5B8DEF'],
+                            ['level' => 'B2', 'name' => 'Upper-Inter.', 'color' => '#9B6FE8'],
+                            ['level' => 'C1', 'name' => 'Advanced', 'color' => '#E86F8A'],
+                        ];
+                    @endphp
+                    @foreach ($cefrLevels as $item)
+                        <div class="text-center p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1"
+                             style="background: color-mix(in srgb, {{ $item['color'] }} 8%, transparent); border: 2px solid color-mix(in srgb, {{ $item['color'] }} 20%, transparent);">
+                            <span class="text-2xl font-bold font-display" style="color: {{ $item['color'] }};">{{ $item['level'] }}</span>
+                            <p class="text-[11px] font-semibold mt-1" style="color: var(--color-text-secondary);">{{ $item['name'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- CTA Final --}}
+    <section class="py-16 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto text-center">
+            <div class="solid-card p-10 sm:p-14"
+                 style="background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary)); border-color: transparent;">
+                <span class="text-5xl block mb-4">🦉</span>
+                <h2 class="font-display font-bold text-2xl sm:text-3xl text-white mb-4">
+                    ¿Listo para empezar?
+                </h2>
+                <p class="text-base text-white/80 mb-8 max-w-lg mx-auto">
+                    Crea tu cuenta gratuita y descubre tu nivel de inglés con nuestro test de ubicación CEFR.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="{{ route('register') }}"
+                       class="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base shadow-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-1"
+                       style="background: var(--color-accent); color: white; font-family:'Plus Jakarta Sans',sans-serif;">
+                        Crear cuenta gratis &#x2192;
+                    </a>
+                    <a href="{{ route('login') }}"
+                       class="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-base transition-all duration-200 hover:bg-white/10"
+                       style="border: 2px solid rgba(255,255,255,0.3); color: white; font-family:'Plus Jakarta Sans',sans-serif;">
+                        Ya tengo cuenta
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- Footer --}}
+    <footer class="py-8 px-4 text-center" style="border-top: 1px solid var(--color-border);">
+        <p class="text-xs" style="color: var(--color-text-secondary);">
+            &copy; {{ date('Y') }} UTBIS &mdash; Agente de Inglés con IA
+        </p>
+    </footer>
+
 </body>
 </html>
