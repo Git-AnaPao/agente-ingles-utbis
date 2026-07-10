@@ -1,4 +1,35 @@
-<x-guest-layout>
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Placement Test · Agente Inglés UTBIS</title>
+
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            var g = localStorage.getItem('grayscale');
+            if (t) document.documentElement.setAttribute('data-theme', t);
+            if (g === 'true') document.documentElement.setAttribute('data-grayscale', 'true');
+        })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="font-sans antialiased" x-data="theme" x-init="init()">
+
+    <button @click="toggleTheme()"
+            class="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-all duration-300 hover:scale-110"
+            style="background: var(--color-glass); border: 1px solid var(--color-glass-border); backdrop-filter: blur(8px);"
+            :title="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'"
+            aria-label="Cambiar tema">
+        <span x-text="theme === 'dark' ? '&#9728;&#65039;' : '&#127769;'" class="text-lg"></span>
+    </button>
     <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8"
          style="background: linear-gradient(135deg, #27594B 0%, #518C4F 50%, #F2B950 100%);"
          x-data="placementTest()">
@@ -366,4 +397,5 @@
             };
         }
     </script>
-</x-guest-layout>
+</body>
+</html>
