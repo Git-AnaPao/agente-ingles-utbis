@@ -3,7 +3,7 @@
          style="background: linear-gradient(135deg, #27594B 0%, #518C4F 50%, #F2B950 100%);"
          x-data="placementTest()">
 
-        <div class="w-full max-w-6xl">
+        <div class="w-full max-w-7xl">
 
             {{-- ═══════ RESULTS SCREEN ═══════ --}}
             <template x-if="phase === 'results'">
