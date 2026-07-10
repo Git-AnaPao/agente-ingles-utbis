@@ -70,29 +70,30 @@ class PlacementController extends Controller
         ];
 
         $totalCorrect = 0;
-        foreach ($correctAnswers as $qId => $correctIndex) {
-            $userAnswer = $request->answers[$qId] ?? null;
-            if ($userAnswer == $correctIndex) {
-                $totalCorrect++;
-            }
-        }
-
-        $cefrOrder = ['A1', 'A2', 'B1', 'B2', 'C1'];
-        $placedLevel = 'A1';
+        $levelBreakdown = [];
 
         foreach ($cefrOrder as $level) {
             $levelQuestions = $questions[$level];
-            $totalInLevel = count($levelQuestions);
             $correctInLevel = 0;
 
             foreach ($levelQuestions as $qId) {
                 $userAnswer = $request->answers[$qId] ?? null;
                 if ($userAnswer == $correctAnswers[$qId]) {
                     $correctInLevel++;
+                    $totalCorrect++;
                 }
             }
 
-            if ($correctInLevel >= ceil($totalInLevel * 0.6)) {
+            $levelBreakdown[$level] = [
+                'correct' => $correctInLevel,
+                'total' => count($levelQuestions),
+            ];
+        }
+
+        $placedLevel = 'A1';
+        foreach ($cefrOrder as $level) {
+            $info = $levelBreakdown[$level];
+            if ($info['correct'] >= ceil($info['total'] * 0.6)) {
                 $placedLevel = $level;
             } else {
                 break;
@@ -107,8 +108,15 @@ class PlacementController extends Controller
             'score' => $score,
         ]);
 
-        return redirect()->route('levels.index')
-            ->with('success', "Placement completado! Nivel: <strong>{$placedLevel}</strong>.");
+        session()->flash('placement_results', [
+            'level' => $placedLevel,
+            'score' => round($score, 1),
+            'correct' => $totalCorrect,
+            'total' => 75,
+            'breakdown' => $levelBreakdown,
+        ]);
+
+        return redirect()->route('placement.index', ['results' => 1]);
     }
 
     public function skip()

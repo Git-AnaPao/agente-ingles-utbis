@@ -5,6 +5,82 @@
 
         <div class="w-full max-w-2xl">
 
+            {{-- ═══════ RESULTS SCREEN ═══════ --}}
+            <template x-if="phase === 'results'">
+                <div class="animate-fade-up">
+                    <div class="text-center mb-8">
+                        <span class="text-6xl block mb-2">&#x1F3C6;</span>
+                        <h1 class="font-display font-bold text-3xl text-white">Test Complete!</h1>
+                    </div>
+
+                    <div class="rounded-2xl bg-white p-6 sm:p-8 shadow-xl mb-4">
+                        {{-- Score circle --}}
+                        <div class="flex flex-col items-center mb-6">
+                            <div class="relative w-32 h-32 mb-4">
+                                <svg class="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
+                                    <circle cx="60" cy="60" r="52" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                                    <circle cx="60" cy="60" r="52" fill="none" :stroke="levelColors[results.level]"
+                                            stroke-width="10" stroke-linecap="round"
+                                            :stroke-dasharray="2 * Math.PI * 52"
+                                            :stroke-dashoffset="2 * Math.PI * 52 * (1 - results.score / 100)"
+                                            class="transition-all duration-1000 ease-out"/>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span class="text-3xl font-bold font-display" :style="'color:' + levelColors[results.level]"
+                                          x-text="results.score + '%'"></span>
+                                    <span class="text-xs text-gray-400" x-text="results.correct + '/' + results.total"></span>
+                                </div>
+                            </div>
+
+                            <div class="text-center">
+                                <p class="text-sm text-gray-500 mb-1">Your level is</p>
+                                <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-lg font-bold text-white"
+                                     :style="'background:' + levelColors[results.level]">
+                                    <span x-text="results.level"></span>
+                                    <span class="text-white/70">&mdash;</span>
+                                    <span x-text="levelNames[results.level]"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Per-level breakdown --}}
+                        <div class="space-y-3 mb-6">
+                            <h3 class="font-display font-bold text-sm" style="color: #374151;">Score by level</h3>
+                            <template x-for="lvl in ['A1','A2','B1','B2','C1']" :key="lvl">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-10 text-xs font-bold" :style="'color:' + levelColors[lvl]" x-text="lvl"></span>
+                                    <div class="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-700 ease-out"
+                                             :style="'width:' + (results.breakdown[lvl].correct / results.breakdown[lvl].total * 100) + '%; background:' + levelColors[lvl]"></div>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-500 w-12 text-right"
+                                          x-text="results.breakdown[lvl].correct + '/' + results.breakdown[lvl].total"></span>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- Level description --}}
+                        <div class="rounded-xl p-4 mb-6" style="background: #f9fafb; border: 1px solid #e5e7eb;">
+                            <p class="text-sm leading-relaxed" style="color: #374151;" x-text="levelDescriptions[results.level]"></p>
+                        </div>
+
+                        {{-- Actions --}}
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <a href="{{ route('levels.index') }}"
+                               class="flex-1 px-6 py-3 rounded-2xl font-bold text-sm text-white text-center shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                               :style="'background: linear-gradient(135deg, ' + levelColors[results.level] + ', ' + levelColors[results.level] + 'aa)'">
+                                Start Learning &#x2192;
+                            </a>
+                            <a href="{{ route('placement.index') }}"
+                               class="px-6 py-3 rounded-2xl font-bold text-sm text-center transition-all duration-200"
+                               style="background: #f3f4f6; color: #374151;">
+                                Retake Test
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
             {{-- ═══════ INSTRUCTIONS SCREEN ═══════ --}}
             <template x-if="phase === 'intro'">
                 <div class="animate-fade-up">
@@ -85,7 +161,7 @@
                             </div>
                         </template>
 
-                        {{-- Reading passage (shown at first question of each reading section) --}}
+                        {{-- Reading passage --}}
                         <template x-if="currentQuestion.passage && isFirstOfPassage">
                             <div class="rounded-2xl bg-white p-5 sm:p-6 shadow-xl mb-4 border-l-4" style="border-color: #518C4F;">
                                 <div class="flex items-center gap-2 mb-3">
@@ -180,13 +256,18 @@
         </div>
     </div>
 
+    @php
+        $resultsData = session('placement_results');
+    @endphp
+
     <script>
         function placementTest() {
             const rawQuestions = @json($questions);
             const total = rawQuestions.length;
+            const sessionResults = @json($resultsData);
 
             return {
-                phase: 'intro',
+                phase: sessionResults ? 'results' : 'intro',
                 currentIndex: 0,
                 total: total,
                 answers: {},
@@ -194,6 +275,15 @@
                 timerInterval: null,
 
                 questions: rawQuestions,
+
+                results: sessionResults || {
+                    level: 'A1', score: 0, correct: 0, total: 75,
+                    breakdown: {
+                        A1: {correct: 0, total: 11}, A2: {correct: 0, total: 19},
+                        B1: {correct: 0, total: 13}, B2: {correct: 0, total: 14},
+                        C1: {correct: 0, total: 19}
+                    }
+                },
 
                 passages: {
                     b1_reading: `<p>How many hours do you think you spend sitting every day? A recent survey has shown that many people spend about twelve hours every day sitting in front of a computer, driving to and from work, and watching TV. Add seven hours of sleeping and the total is stunning: nineteen hours of hardly moving.</p>\n<p>Sitting for long stretches of time is not healthy. In fact, a study has shown that people who sit a lot typically live two years less than more active people. The findings show that extended periods of sitting are harmful regardless of other time spent exercising or playing sport. Scientists have discovered that extended sitting changes the way the body deals with sugar and, thus, the risk of getting diabetes or heart disease increases for those people who sit all the time.</p>\n<p>Scientists at the UK's University of Chester have conducted a simple experiment about the effects of sitting versus standing. They asked ten people who usually spend their days sitting at work to stand for at least three hours a day for a week at their workplace. They wore monitors that checked their heart rate and blood sugar and recorded how much they were moving. At the beginning of the study some of the volunteers were concerned that they would be unable to stand so much, but they were pleasantly surprised&mdash;and one woman even said that her back hurt less after standing during work hours.</p>\n<p>The results of the study were astonishing. Blood sugar levels fell back to normal levels after a meal far more quickly on the days when the volunteers stood than when they sat. The heart rate monitors also showed that by standing the volunteers were burning more calories.</p>`,
@@ -211,6 +301,13 @@
                     A1: 'Beginner', A2: 'Elementary',
                     B1: 'Intermediate', B2: 'Upper-Intermediate',
                     C1: 'Advanced'
+                },
+                levelDescriptions: {
+                    A1: 'You are at the beginner level. You can understand and use basic everyday expressions. Your learning journey starts here!',
+                    A2: 'You are at the elementary level. You can communicate in simple, routine tasks. Keep building your foundation!',
+                    B1: 'You are at the intermediate level. You can deal with most situations while traveling and describe experiences. Great progress!',
+                    B2: 'You are at the upper-intermediate level. You can interact with fluency and spontaneity. Excellent command of English!',
+                    C1: 'You are at the advanced level. You can express yourself fluently and use language flexibly. Outstanding proficiency!'
                 },
 
                 get currentQuestion() {
