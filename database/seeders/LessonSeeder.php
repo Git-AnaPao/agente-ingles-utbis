@@ -11,35 +11,23 @@ class LessonSeeder extends Seeder
     {
         $lessons = [
             // A1
-            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Greetings', 'prompt' => 'Hello, how are you?']],
-            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Introduce yourself', 'prompt' => 'Say your name and where you are from']],
-            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'The Alphabet', 'prompt' => 'Spell common words']],
-            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Verb To Be', 'prompt' => 'I am, you are, he/she/it is']],
-            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 3, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Numbers 1-20', 'prompt' => 'Listen and repeat numbers']],
-            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 3, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Introduce Yourself', 'prompt' => 'My name is, I am from']],
+            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 1, 'lesson_prompt_payload' => ['topic' => 'Greetings', 'prompt' => 'Hello, how are you? Practice introducing yourself.']],
+            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 2, 'lesson_prompt_payload' => ['topic' => 'The Alphabet & Verb To Be', 'prompt' => 'Spell common words. I am, you are, he/she/it is.']],
+            ['lesson_cefr_level' => 'A1', 'lesson_sub_level' => 3, 'lesson_prompt_payload' => ['topic' => 'Numbers & Introductions', 'prompt' => 'Listen and repeat numbers 1-20. Say your name and where you are from.']],
             // A2
-            ['lesson_cefr_level' => 'A2', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Present Simple', 'prompt' => 'I eat, you run, she works']],
-            ['lesson_cefr_level' => 'A2', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Daily Routine', 'prompt' => 'Describe your daily routine']],
-            ['lesson_cefr_level' => 'A2', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Family Members', 'prompt' => 'Mother, father, brother']],
-            ['lesson_cefr_level' => 'A2', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'My Family', 'prompt' => 'Describe your family']],
+            ['lesson_cefr_level' => 'A2', 'lesson_sub_level' => 1, 'lesson_prompt_payload' => ['topic' => 'Present Simple & Daily Routine', 'prompt' => 'I eat, you run, she works. Describe your daily routine.']],
+            ['lesson_cefr_level' => 'A2', 'lesson_sub_level' => 2, 'lesson_prompt_payload' => ['topic' => 'Family Members', 'prompt' => 'Mother, father, brother. Describe your family.']],
             // B1
-            ['lesson_cefr_level' => 'B1', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Future Tense', 'prompt' => 'I will go, I am going to']],
-            ['lesson_cefr_level' => 'B1', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Travel Plans', 'prompt' => 'Describe your future travel plans']],
-            ['lesson_cefr_level' => 'B1', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Comparatives', 'prompt' => 'Bigger, more beautiful']],
-            ['lesson_cefr_level' => 'B1', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'At the Hotel', 'prompt' => 'I have a reservation']],
+            ['lesson_cefr_level' => 'B1', 'lesson_sub_level' => 1, 'lesson_prompt_payload' => ['topic' => 'Future Tense & Travel', 'prompt' => 'I will go, I am going to. Describe your future travel plans.']],
+            ['lesson_cefr_level' => 'B1', 'lesson_sub_level' => 2, 'lesson_prompt_payload' => ['topic' => 'Comparatives & Hotel', 'prompt' => 'Bigger, more beautiful. I have a reservation.']],
             // B2
-            ['lesson_cefr_level' => 'B2', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Passive Voice', 'prompt' => 'The book was written by']],
-            ['lesson_cefr_level' => 'B2', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'News & Media', 'prompt' => 'Discuss a news article']],
-            ['lesson_cefr_level' => 'B2', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Phrasal Verbs', 'prompt' => 'Give up, look after']],
-            ['lesson_cefr_level' => 'B2', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Debate & Opinions', 'prompt' => 'Express and defend your ideas']],
+            ['lesson_cefr_level' => 'B2', 'lesson_sub_level' => 1, 'lesson_prompt_payload' => ['topic' => 'Passive Voice & News', 'prompt' => 'The book was written by. Discuss a news article.']],
+            ['lesson_cefr_level' => 'B2', 'lesson_sub_level' => 2, 'lesson_prompt_payload' => ['topic' => 'Phrasal Verbs & Debate', 'prompt' => 'Give up, look after. Express and defend your ideas.']],
             // C1
-            ['lesson_cefr_level' => 'C1', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Idioms & Proverbs', 'prompt' => 'Break the ice, piece of cake']],
-            ['lesson_cefr_level' => 'C1', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Fluent Conversation', 'prompt' => 'Speak fluently on any topic']],
-            ['lesson_cefr_level' => 'C1', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Nuanced Grammar', 'prompt' => 'Inversions, cleft sentences']],
-            ['lesson_cefr_level' => 'C1', 'lesson_sub_level' => 2, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'TOEFL/IELTS Prep', 'prompt' => 'Exam strategies and practice']],
+            ['lesson_cefr_level' => 'C1', 'lesson_sub_level' => 1, 'lesson_prompt_payload' => ['topic' => 'Idioms & Conversation', 'prompt' => 'Break the ice, piece of cake. Speak fluently on any topic.']],
+            ['lesson_cefr_level' => 'C1', 'lesson_sub_level' => 2, 'lesson_prompt_payload' => ['topic' => 'Nuanced Grammar & Exam Prep', 'prompt' => 'Inversions, cleft sentences. TOEFL/IELTS strategies.']],
             // C2
-            ['lesson_cefr_level' => 'C2', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'listening', 'lesson_prompt_payload' => ['topic' => 'Advanced Listening', 'prompt' => 'Academic lectures']],
-            ['lesson_cefr_level' => 'C2', 'lesson_sub_level' => 1, 'lesson_skill_type' => 'speaking', 'lesson_prompt_payload' => ['topic' => 'Advanced Speaking', 'prompt' => 'Present complex ideas fluently']],
+            ['lesson_cefr_level' => 'C2', 'lesson_sub_level' => 1, 'lesson_prompt_payload' => ['topic' => 'Advanced Listening & Speaking', 'prompt' => 'Academic lectures. Present complex ideas fluently.']],
         ];
 
         foreach ($lessons as $data) {
