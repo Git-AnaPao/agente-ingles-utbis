@@ -3,7 +3,7 @@
          style="background: linear-gradient(135deg, #27594B 0%, #518C4F 50%, #F2B950 100%);"
          x-data="placementTest()">
 
-        <div class="w-full max-w-4xl">
+        <div class="w-full max-w-6xl">
 
             {{-- ═══════ RESULTS SCREEN ═══════ --}}
             <template x-if="phase === 'results'">
@@ -13,7 +13,7 @@
                         <h1 class="font-display font-bold text-3xl text-white">Test Complete!</h1>
                     </div>
 
-                    <div class="rounded-2xl bg-white p-8 sm:p-10 shadow-xl mb-4">
+                    <div class="rounded-2xl bg-white p-8 sm:p-12 shadow-xl mb-4">
                         <div class="flex flex-col items-center mb-6">
                             <div class="relative w-32 h-32 mb-4">
                                 <svg class="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
@@ -87,7 +87,7 @@
                         </p>
                     </div>
 
-                    <div class="rounded-2xl bg-white p-8 sm:p-10 shadow-xl">
+                    <div class="rounded-2xl bg-white p-8 sm:p-12 shadow-xl">
                         <h2 class="font-display font-bold text-xl mb-4" style="color: #1f2937;">Test Instructions</h2>
                         <ul class="space-y-3 text-sm mb-6" style="color: #374151;">
                             <li class="flex gap-2"><span class="text-brand-verde font-bold">1.</span> Read each question carefully before answering.</li>
@@ -164,7 +164,7 @@
 
                             {{-- Reading passage at first question of each section --}}
                             @if (isset($q['passage']) && ($index === 0 || !isset($questions[$index - 1]['passage']) || $questions[$index - 1]['passage'] !== $q['passage']))
-                                <div class="rounded-2xl bg-white p-6 sm:p-8 shadow-xl mb-4 border-l-4" style="border-color: #518C4F;">
+                                <div class="rounded-2xl bg-white p-8 sm:p-10 shadow-xl mb-4 border-l-4" style="border-color: #518C4F;">
                                     <div class="flex items-center gap-2 mb-3">
                                         <span class="text-sm">&#x1F4D6;</span>
                                         <span class="font-display font-bold text-sm" style="color: #27594B;">Reading Passage</span>
@@ -197,7 +197,7 @@
                             @endif
 
                             {{-- Question card --}}
-                            <div class="rounded-2xl bg-white p-8 sm:p-10 shadow-xl mb-4">
+                            <div class="rounded-2xl bg-white p-8 sm:p-12 shadow-xl mb-4">
                                 <div class="flex items-center gap-3 mb-4">
                                     <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white"
                                           style="background: #27594B;">{{ $q['id'] }}</span>
