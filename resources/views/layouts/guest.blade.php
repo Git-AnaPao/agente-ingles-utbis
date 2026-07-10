@@ -27,6 +27,14 @@
 
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 px-4">
 
+            {{-- Theme toggle --}}
+            <button @click="toggleTheme()"
+                    class="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-all duration-300 hover:scale-110"
+                    style="background: var(--color-glass); border: 1px solid var(--color-glass-border); backdrop-filter: blur(8px);"
+                    :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+                <span x-text="theme === 'dark' ? '&#9728;&#65039;' : '&#127769;'" class="text-lg"></span>
+            </button>
+
             <div class="mb-8 animate-fade-up">
                 <a href="/" aria-label="Ir al inicio">
                     <div class="flex flex-col items-center gap-2">
