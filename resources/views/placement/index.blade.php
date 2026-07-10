@@ -140,7 +140,7 @@
                     @csrf
 
                     @foreach ($questions as $index => $q)
-                        <div x-show="currentIndex === {{ $index }}" x-transition.opacity>
+                        <div x-show="currentIndex === {{ $index }}">
                             {{-- Level header --}}
                             @php
                                 $prevLevel = $index > 0 ? $questions[$index - 1]['level'] : null;
