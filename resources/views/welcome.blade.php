@@ -16,7 +16,7 @@
 <body class="min-h-screen antialiased" style="background-color: var(--color-bg); font-family:Inter,sans-serif;">
 
     {{-- Navbar --}}
-    <nav class="fixed top-0 inset-x-0 z-50" x-data x-init="$nextTick(() => {})">
+    <nav class="fixed top-0 inset-x-0 z-50" x-data="theme" x-init="init()">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center gap-2.5 group" aria-label="Inicio">
@@ -24,6 +24,13 @@
                     <span class="font-display font-bold text-sm" style="color: var(--color-primary);">Agente Inglés</span>
                 </a>
                 <div class="flex items-center gap-3">
+                    <button @click="toggleTheme()"
+                            class="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+                            style="background: var(--color-glass); border: 1px solid var(--color-glass-border);"
+                            :title="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'"
+                            aria-label="Cambiar tema">
+                        <span x-text="theme === 'dark' ? '&#9728;&#65039;' : '&#127769;'" class="text-base"></span>
+                    </button>
                     <a href="{{ route('login') }}"
                        class="px-4 py-2 rounded-xl text-sm font-semibold transition hover:opacity-80"
                        style="color: var(--color-primary);">
