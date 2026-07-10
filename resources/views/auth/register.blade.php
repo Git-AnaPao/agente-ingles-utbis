@@ -36,7 +36,9 @@
         <div>
             <x-input-label for="email" :value="__('Correo electrónico')" />
             <x-text-input id="email" type="email" name="email"
-                          :value="old('email')" required autocomplete="username" />
+                          :value="old('email')" required autocomplete="username"
+                          placeholder="t24xx-xxxx@utbispuebla.edu.mx" />
+            <p class="mt-1 text-xs" style="color:#9CA3AF;">Solo se aceptan correos @utbispuebla.edu.mx</p>
             <x-input-error :messages="$errors->get('email')" />
         </div>
 

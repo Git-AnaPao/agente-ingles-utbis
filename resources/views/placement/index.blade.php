@@ -14,7 +14,6 @@
                     </div>
 
                     <div class="rounded-2xl bg-white p-6 sm:p-8 shadow-xl mb-4">
-                        {{-- Score circle --}}
                         <div class="flex flex-col items-center mb-6">
                             <div class="relative w-32 h-32 mb-4">
                                 <svg class="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
@@ -31,7 +30,6 @@
                                     <span class="text-xs text-gray-400" x-text="results.correct + '/' + results.total"></span>
                                 </div>
                             </div>
-
                             <div class="text-center">
                                 <p class="text-sm text-gray-500 mb-1">Your level is</p>
                                 <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-lg font-bold text-white"
@@ -43,7 +41,6 @@
                             </div>
                         </div>
 
-                        {{-- Per-level breakdown --}}
                         <div class="space-y-3 mb-6">
                             <h3 class="font-display font-bold text-sm" style="color: #374151;">Score by level</h3>
                             <template x-for="lvl in ['A1','A2','B1','B2','C1']" :key="lvl">
@@ -59,12 +56,10 @@
                             </template>
                         </div>
 
-                        {{-- Level description --}}
                         <div class="rounded-xl p-4 mb-6" style="background: #f9fafb; border: 1px solid #e5e7eb;">
                             <p class="text-sm leading-relaxed" style="color: #374151;" x-text="levelDescriptions[results.level]"></p>
                         </div>
 
-                        {{-- Actions --}}
                         <div class="flex flex-col sm:flex-row gap-3">
                             <a href="{{ route('levels.index') }}"
                                class="flex-1 px-6 py-3 rounded-2xl font-bold text-sm text-white text-center shadow-lg transition-all duration-200 hover:-translate-y-0.5"
@@ -128,113 +123,140 @@
             </template>
 
             {{-- ═══════ TEST SCREEN ═══════ --}}
-            <template x-if="phase === 'test'">
-                <div>
-                    {{-- Header --}}
-                    <div class="flex items-center justify-between mb-4">
-                        <h1 class="font-display font-bold text-lg text-white">Placement Test</h1>
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-bold px-3 py-1.5 rounded-full"
-                                  :class="timeLeft < 300 ? 'bg-red-500 text-white animate-pulse' : 'bg-white/20 text-white'"
-                                  x-text="formatTime(timeLeft)"></span>
-                        </div>
-                    </div>
-
-                    {{-- Progress bar --}}
-                    <div class="bg-white/20 rounded-full h-2 mb-6 overflow-hidden">
-                        <div class="h-full rounded-full bg-white transition-all duration-300"
-                             :style="'width:' + ((currentIndex + 1) / total * 100) + '%'"></div>
-                    </div>
-
-                    <form method="POST" action="{{ route('placement.submit') }}" id="placement-form" @submit.prevent="submitTest()">
-                        @csrf
-
-                        {{-- Level section header --}}
-                        <template x-if="showLevelHeader">
-                            <div class="rounded-xl p-4 mb-4 text-center" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);">
-                                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-white"
-                                      :style="'background:' + levelColors[currentLevel]">
-                                    <span x-text="currentLevel"></span>
-                                    <span class="text-white/70">&mdash;</span>
-                                    <span x-text="levelNames[currentLevel]"></span>
-                                </span>
-                            </div>
-                        </template>
-
-                        {{-- Reading passage --}}
-                        <template x-if="currentQuestion.passage && isFirstOfPassage">
-                            <div class="rounded-2xl bg-white p-5 sm:p-6 shadow-xl mb-4 border-l-4" style="border-color: #518C4F;">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <span class="text-sm">&#x1F4D6;</span>
-                                    <span class="font-display font-bold text-sm" style="color: #27594B;">Reading Passage</span>
-                                </div>
-                                <div class="text-sm leading-relaxed whitespace-pre-line" style="color: #374151;"
-                                     x-html="passages[currentQuestion.passage]"></div>
-                            </div>
-                        </template>
-
-                        {{-- Question card --}}
-                        <div class="rounded-2xl bg-white p-6 sm:p-8 shadow-xl mb-4">
-                            <div class="flex items-center gap-3 mb-4">
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white"
-                                      style="background: #27594B;" x-text="currentQuestion.id"></span>
-                                <span class="text-xs font-semibold px-2 py-1 rounded-full"
-                                      style="background: #e2e3f1; color: #3a3a7b;"
-                                      x-text="currentQuestion.level"></span>
-                                <span class="text-xs text-gray-400 ml-auto" x-text="(currentIndex + 1) + ' / ' + total"></span>
-                            </div>
-
-                            <p class="font-display font-bold text-lg mb-5" style="color: #1f2937;"
-                               x-text="currentQuestion.question"></p>
-
-                            <div class="space-y-3">
-                                <template x-for="(opt, optIdx) in currentQuestion.options" :key="optIdx">
-                                    <label class="option-label flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:scale-[1.01]"
-                                           :style="answers[currentQuestion.id] === optIdx
-                                               ? 'border-color: #518C4F; background: #f0fff4;'
-                                               : 'border-color: #e5e7eb; background: #f9fafb;'"
-                                           @click="selectAnswer(currentQuestion.id, optIdx)">
-                                        <input type="radio"
-                                               :name="'answers[' + currentQuestion.id + ']'"
-                                               :value="optIdx"
-                                               class="w-5 h-5"
-                                               style="accent-color: #518C4F;"
-                                               :checked="answers[currentQuestion.id] === optIdx"
-                                               @click.stop>
-                                        <span class="text-sm font-medium" style="color: #374151;" x-text="opt"></span>
-                                    </label>
-                                </template>
-                            </div>
-                        </div>
-
-                        {{-- Navigation --}}
-                        <div class="flex items-center justify-between mt-4">
-                            <button type="button" @click="prevQuestion()"
-                                    class="px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200"
-                                    style="background: #e5e7eb; color: #374151;"
-                                    :class="currentIndex === 0 ? 'opacity-40 pointer-events-none' : ''">
-                                &larr; Previous
-                            </button>
-
-                            <button type="button" @click="nextQuestion()"
-                                    class="px-6 py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200"
-                                    style="background: #F28729; color: white;"
-                                    x-show="currentIndex < total - 1">
-                                Next &rarr;
-                            </button>
-
-                            <button type="submit"
-                                    class="px-8 py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200"
-                                    style="background: linear-gradient(135deg, #518C4F, #27594B); color: white;"
-                                    x-show="currentIndex === total - 1"
-                                    :disabled="answeredCount < total"
-                                    :class="answeredCount < total ? 'opacity-50 cursor-not-allowed' : ''">
-                                &#x2705; Submit (<span x-text="answeredCount"></span>/<span x-text="total"></span>)
-                            </button>
-                        </div>
-                    </form>
+            <div x-show="phase === 'test'" x-cloak>
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="font-display font-bold text-lg text-white">Placement Test</h1>
+                    <span class="text-xs font-bold px-3 py-1.5 rounded-full"
+                          :class="timeLeft < 300 ? 'bg-red-500 text-white animate-pulse' : 'bg-white/20 text-white'"
+                          x-text="formatTime(timeLeft)"></span>
                 </div>
-            </template>
+
+                <div class="bg-white/20 rounded-full h-2 mb-6 overflow-hidden">
+                    <div class="h-full rounded-full bg-white transition-all duration-300"
+                         :style="'width:' + ((currentIndex + 1) / total * 100) + '%'"></div>
+                </div>
+
+                <form method="POST" action="{{ route('placement.submit') }}" id="placement-form">
+                    @csrf
+
+                    @foreach ($questions as $index => $q)
+                        <div x-show="currentIndex === {{ $index }}" x-transition.opacity>
+                            {{-- Level header --}}
+                            @php
+                                $prevLevel = $index > 0 ? $questions[$index - 1]['level'] : null;
+                                $showHeader = $q['level'] !== $prevLevel;
+                            @endphp
+                            @if ($showHeader)
+                                <div class="rounded-xl p-4 mb-4 text-center" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);">
+                                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold text-white"
+                                          style="background: {{ match($q['level']) {
+                                              'A1' => '#2D6A4F', 'A2' => '#40916C', 'B1' => '#5B8DEF',
+                                              'B2' => '#9B6FE8', 'C1' => '#E86F8A', default => '#2D6A4F'
+                                          } }}">
+                                        {{ $q['level'] }} &mdash; {{ match($q['level']) {
+                                            'A1' => 'Beginner', 'A2' => 'Elementary',
+                                            'B1' => 'Intermediate', 'B2' => 'Upper-Intermediate',
+                                            'C1' => 'Advanced', default => ''
+                                        } }}
+                                    </span>
+                                </div>
+                            @endif
+
+                            {{-- Reading passage at first question of each section --}}
+                            @if (isset($q['passage']) && ($index === 0 || !isset($questions[$index - 1]['passage']) || $questions[$index - 1]['passage'] !== $q['passage']))
+                                <div class="rounded-2xl bg-white p-5 sm:p-6 shadow-xl mb-4 border-l-4" style="border-color: #518C4F;">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <span class="text-sm">&#x1F4D6;</span>
+                                        <span class="font-display font-bold text-sm" style="color: #27594B;">Reading Passage</span>
+                                    </div>
+                                    @if ($q['passage'] === 'b1_reading')
+                                        <div class="text-sm leading-relaxed" style="color: #374151;">
+                                            <p>How many hours do you think you spend sitting every day? A recent survey has shown that many people spend about twelve hours every day sitting in front of a computer, driving to and from work, and watching TV. Add seven hours of sleeping and the total is stunning: nineteen hours of hardly moving.</p>
+                                            <p class="mt-3">Sitting for long stretches of time is not healthy. In fact, a study has shown that people who sit a lot typically live two years less than more active people. The findings show that extended periods of sitting are harmful regardless of other time spent exercising or playing sport. Scientists have discovered that extended sitting changes the way the body deals with sugar and, thus, the risk of getting diabetes or heart disease increases for those people who sit all the time.</p>
+                                            <p class="mt-3">Scientists at the UK's University of Chester have conducted a simple experiment about the effects of sitting versus standing. They asked ten people who usually spend their days sitting at work to stand for at least three hours a day for a week at their workplace. They wore monitors that checked their heart rate and blood sugar and recorded how much they were moving. At the beginning of the study some of the volunteers were concerned that they would be unable to stand so much, but they were pleasantly surprised&mdash;and one woman even said that her back hurt less after standing during work hours.</p>
+                                            <p class="mt-3">The results of the study were astonishing. Blood sugar levels fell back to normal levels after a meal far more quickly on the days when the volunteers stood than when they sat. The heart rate monitors also showed that by standing the volunteers were burning more calories.</p>
+                                        </div>
+                                    @elseif ($q['passage'] === 'b2_reading')
+                                        <div class="text-sm leading-relaxed" style="color: #374151;">
+                                            <p>Many of us love to eat a good piece of chocolate now and again. Unfortunately, chocolate is expected to become more expensive in the next few years. There are not enough cocoa trees in the world right now to meet the demand for chocolate.</p>
+                                            <p class="mt-3">As economies in countries like China become stronger, more people are buying and eating chocolate. This makes the price of chocolate go up. Even if Central and South American cocoa bean farmers planted more cocoa trees today, the trees would not be ready to produce cocoa beans for ten years.</p>
+                                            <p class="mt-3">Some people might stop buying chocolate if it gets too expensive. Others like Greg Johnson who just bought boxes of chocolate for all his employees, will not stop even if the price rises. "I will continue to buy chocolate. I might just buy smaller boxes. Chocolate is a wonderful gift because almost everyone smiles when they get a box of chocolates," he said outside of a Godiva chocolate store.</p>
+                                            <p class="mt-3">Big chocolate companies will either raise the cost of a chocolate bar or make the candy bars a bit smaller for the same price.</p>
+                                            <p class="mt-3">Either way, if you are a chocolate fan like me, you might want to buy now before the prices rise.</p>
+                                        </div>
+                                    @elseif ($q['passage'] === 'c1_reading')
+                                        <div class="text-sm leading-relaxed" style="color: #374151;">
+                                            <p>Modern technology has transformed the way people communicate, collaborate, and access information. Smartphones, instant messaging, and social media platforms have made it possible to remain connected with colleagues, friends, and family at virtually every moment of the day. While this constant connectivity has undoubtedly improved efficiency and convenience, it has also created unexpected challenges that are only now becoming fully understood.</p>
+                                            <p class="mt-3">One of the most significant consequences is the gradual disappearance of clear boundaries between work and personal life. Employees often feel obligated to answer emails long after working hours have ended, fearing that delayed responses may be interpreted as a lack of commitment. As a result, many professionals report feeling mentally exhausted even after spending an evening at home, since they are never completely disconnected from their responsibilities.</p>
+                                            <p class="mt-3">Researchers have also observed that the continuous flow of notifications may reduce people's ability to concentrate on complex tasks. Every interruption forces the brain to redirect its attention, and although each distraction may seem insignificant, their cumulative effect can substantially reduce productivity. Ironically, tools designed to help people accomplish more often encourage fragmented attention rather than sustained focus.</p>
+                                            <p class="mt-3">This does not necessarily mean that technology itself is harmful. Instead, many experts argue that the problem lies in how society has chosen to use it. Organizations that establish clear expectations regarding digital communication often report higher employee satisfaction and lower levels of stress. Likewise, individuals who intentionally schedule periods without digital interruptions frequently experience greater creativity and improved decision-making.</p>
+                                            <p class="mt-3">Ultimately, the challenge is not to reject technology but to develop healthier habits that allow people to benefit from its advantages without becoming controlled by it. Achieving this balance may prove to be one of the defining skills of the modern workplace.</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+
+                            {{-- Question card --}}
+                            <div class="rounded-2xl bg-white p-6 sm:p-8 shadow-xl mb-4">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white"
+                                          style="background: #27594B;">{{ $q['id'] }}</span>
+                                    <span class="text-xs font-semibold px-2 py-1 rounded-full"
+                                          style="background: #e2e3f1; color: #3a3a7b;">{{ $q['level'] }}</span>
+                                    <span class="text-xs text-gray-400 ml-auto">{{ $index + 1 }} / {{ count($questions) }}</span>
+                                </div>
+
+                                <p class="font-display font-bold text-lg mb-5" style="color: #1f2937;">{{ $q['question'] }}</p>
+
+                                <div class="space-y-3">
+                                    @foreach ($q['options'] as $optIndex => $option)
+                                        <label class="option-label flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:scale-[1.01]"
+                                               style="border-color: #e5e7eb; background: #f9fafb;"
+                                               x-init="$el.style.borderColor = (answers[{{ $q['id'] }}] === {{ $optIndex }}) ? '#518C4F' : '#e5e7eb'; $el.style.background = (answers[{{ $q['id'] }}] === {{ $optIndex }}) ? '#f0fff4' : '#f9fafb'"
+                                               @click="selectAnswer({{ $q['id'] }}, {{ $optIndex }}); $el.style.borderColor='#518C4F'; $el.style.background='#f0fff4'">
+                                            <input type="radio"
+                                                   name="answers[{{ $q['id'] }}]"
+                                                   value="{{ $optIndex }}"
+                                                   class="w-5 h-5"
+                                                   style="accent-color: #518C4F;"
+                                                   :checked="answers[{{ $q['id'] }}] === {{ $optIndex }}">
+                                            <span class="text-sm font-medium" style="color: #374151;">{{ $option }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+
+                    {{-- Navigation --}}
+                    <div class="flex items-center justify-between mt-4">
+                        <button type="button" @click="prevQuestion()"
+                                class="px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200"
+                                style="background: #e5e7eb; color: #374151;"
+                                :class="currentIndex === 0 ? 'opacity-40 pointer-events-none' : ''">
+                            &larr; Previous
+                        </button>
+
+                        <span class="text-sm font-semibold text-white" x-text="(currentIndex + 1) + ' / ' + total"></span>
+
+                        <button type="button" @click="nextQuestion()"
+                                class="px-6 py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200"
+                                style="background: #F28729; color: white;"
+                                x-show="currentIndex < total - 1">
+                            Next &rarr;
+                        </button>
+
+                        <button type="submit"
+                                class="px-8 py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200"
+                                style="background: linear-gradient(135deg, #518C4F, #27594B); color: white;"
+                                x-show="currentIndex === total - 1"
+                                :disabled="answeredCount < total"
+                                :class="answeredCount < total ? 'opacity-50 cursor-not-allowed' : ''">
+                            &#x2705; Submit (<span x-text="answeredCount"></span>/<span x-text="total"></span>)
+                        </button>
+                    </div>
+                </form>
+            </div>
 
             {{-- ═══════ TIME UP OVERLAY ═══════ --}}
             <template x-if="timeLeft <= 0 && phase === 'test'">
@@ -256,10 +278,6 @@
         </div>
     </div>
 
-    @php
-        $resultsData = $resultsData ?? null;
-    @endphp
-
     <script>
         function placementTest() {
             const rawQuestions = @json($questions);
@@ -273,7 +291,6 @@
                 answers: {},
                 timeLeft: 55 * 60,
                 timerInterval: null,
-
                 questions: rawQuestions,
 
                 results: sessionResults || {
@@ -283,14 +300,6 @@
                         B1: {correct: 0, total: 13}, B2: {correct: 0, total: 14},
                         C1: {correct: 0, total: 19}
                     }
-                },
-
-                passages: {
-                    b1_reading: `<p>How many hours do you think you spend sitting every day? A recent survey has shown that many people spend about twelve hours every day sitting in front of a computer, driving to and from work, and watching TV. Add seven hours of sleeping and the total is stunning: nineteen hours of hardly moving.</p>\n<p>Sitting for long stretches of time is not healthy. In fact, a study has shown that people who sit a lot typically live two years less than more active people. The findings show that extended periods of sitting are harmful regardless of other time spent exercising or playing sport. Scientists have discovered that extended sitting changes the way the body deals with sugar and, thus, the risk of getting diabetes or heart disease increases for those people who sit all the time.</p>\n<p>Scientists at the UK's University of Chester have conducted a simple experiment about the effects of sitting versus standing. They asked ten people who usually spend their days sitting at work to stand for at least three hours a day for a week at their workplace. They wore monitors that checked their heart rate and blood sugar and recorded how much they were moving. At the beginning of the study some of the volunteers were concerned that they would be unable to stand so much, but they were pleasantly surprised&mdash;and one woman even said that her back hurt less after standing during work hours.</p>\n<p>The results of the study were astonishing. Blood sugar levels fell back to normal levels after a meal far more quickly on the days when the volunteers stood than when they sat. The heart rate monitors also showed that by standing the volunteers were burning more calories.</p>`,
-
-                    b2_reading: `<p>Many of us love to eat a good piece of chocolate now and again. Unfortunately, chocolate is expected to become more expensive in the next few years. There are not enough cocoa trees in the world right now to meet the demand for chocolate.</p>\n<p>As economies in countries like China become stronger, more people are buying and eating chocolate. This makes the price of chocolate go up. Even if Central and South American cocoa bean farmers planted more cocoa trees today, the trees would not be ready to produce cocoa beans for ten years.</p>\n<p>Some people might stop buying chocolate if it gets too expensive. Others like Greg Johnson who just bought boxes of chocolate for all his employees, will not stop even if the price rises. "I will continue to buy chocolate. I might just buy smaller boxes. Chocolate is a wonderful gift because almost everyone smiles when they get a box of chocolates," he said outside of a Godiva chocolate store.</p>\n<p>Big chocolate companies will either raise the cost of a chocolate bar or make the candy bars a bit smaller for the same price.</p>\n<p>Either way, if you are a chocolate fan like me, you might want to buy now before the prices rise.</p>`,
-
-                    c1_reading: `<p>Modern technology has transformed the way people communicate, collaborate, and access information. Smartphones, instant messaging, and social media platforms have made it possible to remain connected with colleagues, friends, and family at virtually every moment of the day. While this constant connectivity has undoubtedly improved efficiency and convenience, it has also created unexpected challenges that are only now becoming fully understood.</p>\n<p>One of the most significant consequences is the gradual disappearance of clear boundaries between work and personal life. Employees often feel obligated to answer emails long after working hours have ended, fearing that delayed responses may be interpreted as a lack of commitment. As a result, many professionals report feeling mentally exhausted even after spending an evening at home, since they are never completely disconnected from their responsibilities.</p>\n<p>Researchers have also observed that the continuous flow of notifications may reduce people's ability to concentrate on complex tasks. Every interruption forces the brain to redirect its attention, and although each distraction may seem insignificant, their cumulative effect can substantially reduce productivity. Ironically, tools designed to help people accomplish more often encourage fragmented attention rather than sustained focus.</p>\n<p>This does not necessarily mean that technology itself is harmful. Instead, many experts argue that the problem lies in how society has chosen to use it. Organizations that establish clear expectations regarding digital communication often report higher employee satisfaction and lower levels of stress. Likewise, individuals who intentionally schedule periods without digital interruptions frequently experience greater creativity and improved decision-making.</p>\n<p>Ultimately, the challenge is not to reject technology but to develop healthier habits that allow people to benefit from its advantages without becoming controlled by it. Achieving this balance may prove to be one of the defining skills of the modern workplace.</p>`
                 },
 
                 levelColors: {
@@ -308,28 +317,6 @@
                     B1: 'You are at the intermediate level. You can deal with most situations while traveling and describe experiences. Great progress!',
                     B2: 'You are at the upper-intermediate level. You can interact with fluency and spontaneity. Excellent command of English!',
                     C1: 'You are at the advanced level. You can express yourself fluently and use language flexibly. Outstanding proficiency!'
-                },
-
-                get currentQuestion() {
-                    return this.questions[this.currentIndex] || this.questions[0];
-                },
-
-                get currentLevel() {
-                    return this.currentQuestion.level;
-                },
-
-                get showLevelHeader() {
-                    if (this.currentIndex === 0) return true;
-                    return this.currentQuestion.level !== this.questions[this.currentIndex - 1].level;
-                },
-
-                get isFirstOfPassage() {
-                    if (!this.currentQuestion.passage) return false;
-                    const pKey = this.currentQuestion.passage;
-                    for (let i = this.currentIndex - 1; i >= 0; i--) {
-                        if (this.questions[i].passage === pKey) return false;
-                    }
-                    return true;
                 },
 
                 get answeredCount() {
@@ -378,15 +365,5 @@
                 }
             };
         }
-
-        document.addEventListener('keydown', (e) => {
-            const scope = document.querySelector('[x-data]');
-            if (!scope || !scope.__x) return;
-            const data = scope.__x.$data;
-            if (data.phase !== 'test') return;
-
-            if (e.key === 'ArrowRight') data.nextQuestion();
-            if (e.key === 'ArrowLeft') data.prevQuestion();
-        });
     </script>
 </x-guest-layout>

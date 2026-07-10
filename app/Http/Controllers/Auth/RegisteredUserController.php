@@ -27,7 +27,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'user_last_name' => ['required', 'string', 'max:255'],
             'user_cel' => ['required', 'string', 'max:12', 'unique:users,user_cel'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,user_email'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,user_email', 'ends_with:utbispuebla.edu.mx'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
