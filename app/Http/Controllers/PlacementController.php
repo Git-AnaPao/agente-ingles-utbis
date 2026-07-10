@@ -16,12 +16,12 @@ class PlacementController extends Controller
             return redirect()->route('dashboard');
         }
 
-        if ($user->placementTests()->exists()) {
+        $questions = $this->getQuestions();
+
+        if ($user->placementTests()->exists() && !request()->has('results')) {
             return redirect()->route('levels.index')
                 ->with('info', 'Ya completaste el placement test.');
         }
-
-        $questions = $this->getQuestions();
 
         return view('placement.index', compact('questions'));
     }
