@@ -23,7 +23,19 @@ class PlacementController extends Controller
                 ->with('info', 'Ya completaste el placement test.');
         }
 
-        return view('placement.index', compact('questions'));
+        $resultsData = null;
+        if (request()->has('results') && $user->placementTests()->exists()) {
+            $test = $user->placementTests()->latest()->first();
+            $resultsData = [
+                'level' => $test->result_level,
+                'score' => round($test->score, 1),
+                'correct' => $test->correct_answers,
+                'total' => $test->total_questions,
+                'breakdown' => json_decode($test->level_breakdown, true) ?? [],
+            ];
+        }
+
+        return view('placement.index', compact('questions', 'resultsData'));
     }
 
     public function submit(Request $request)
@@ -69,6 +81,7 @@ class PlacementController extends Controller
             71 => 1, 72 => 1, 73 => 2, 74 => 2, 75 => 2,
         ];
 
+        $cefrOrder = ['A1', 'A2', 'B1', 'B2', 'C1'];
         $totalCorrect = 0;
         $levelBreakdown = [];
 
@@ -106,14 +119,9 @@ class PlacementController extends Controller
             'student_id' => $user->user_id,
             'result_level' => $placedLevel,
             'score' => $score,
-        ]);
-
-        session()->flash('placement_results', [
-            'level' => $placedLevel,
-            'score' => round($score, 1),
-            'correct' => $totalCorrect,
-            'total' => 75,
-            'breakdown' => $levelBreakdown,
+            'correct_answers' => $totalCorrect,
+            'total_questions' => 75,
+            'level_breakdown' => json_encode($levelBreakdown),
         ]);
 
         return redirect()->route('placement.index', ['results' => 1]);

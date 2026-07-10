@@ -257,7 +257,7 @@
     </div>
 
     @php
-        $resultsData = session('placement_results');
+        $resultsData = $resultsData ?? null;
     @endphp
 
     <script>

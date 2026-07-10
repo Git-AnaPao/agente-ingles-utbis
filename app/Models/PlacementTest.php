@@ -21,6 +21,9 @@ class PlacementTest extends Model
         'student_id',
         'result_level',
         'score',
+        'correct_answers',
+        'total_questions',
+        'level_breakdown',
         'taken_at',
     ];
 
@@ -29,6 +32,8 @@ class PlacementTest extends Model
         return [
             'taken_at' => 'datetime',
             'score' => 'decimal:2',
+            'correct_answers' => 'integer',
+            'total_questions' => 'integer',
         ];
     }
 
