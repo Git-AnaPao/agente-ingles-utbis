@@ -15,10 +15,7 @@ return new class extends Migration
             $table->uuid('lesson_id');
             $table->enum('student_cefr_level', ['A1','A2','B1','B2','C1','C2']);
             $table->integer('student_sub_level')->default(1);
-            $table->enum('student_skill_type', ['listening','speaking']);
-            $table->enum('student_current_status', ['in_progress','completed'])
-                ->default('in_progress');
-            $table->integer('student_xp_earned')->default(0);
+            $table->enum('student_skill_type', ['listening','speaking','writing','reading']);
             $table->timestamps();
 
             $table->foreign('student_id')

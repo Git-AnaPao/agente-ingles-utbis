@@ -8,22 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('questionnaire_options', function (Blueprint $table) {
+        Schema::create('question_options', function (Blueprint $table) {
             $table->uuid('option_id')->primary();
-            $table->uuid('questionnaire_id');
+            $table->uuid('question_id');
             $table->string('option_text', 500);
             $table->boolean('is_correct')->default(false);
-            $table->integer('option_order')->default(1);
 
-            $table->foreign('questionnaire_id')
-                ->references('questionnaire_id')
-                ->on('questionnaire')
+            $table->foreign('question_id')
+                ->references('question_id')
+                ->on('questions')
                 ->onDelete('cascade');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('questionnaire_options');
+        Schema::dropIfExists('question_options');
     }
 };

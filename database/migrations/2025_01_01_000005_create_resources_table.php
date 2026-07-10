@@ -10,18 +10,17 @@ return new class extends Migration
     {
         Schema::create('resources', function (Blueprint $table) {
             $table->uuid('resource_id')->primary();
-            $table->uuid('lesson_id');
+            $table->uuid('questionnaire_id');
             $table->enum('resource_type', ['audio', 'text', 'image']);
-            $table->string('resource_url', 500)
-                ->comment('Ruta local en HostGator');
+            $table->string('resource_url', 500);
             $table->string('resource_title', 255)->nullable();
             $table->text('resource_transcript')->nullable()
                 ->comment('Transcripcion del audio para speaking');
             $table->timestamps();
 
-            $table->foreign('lesson_id')
-                ->references('lesson_id')
-                ->on('lessons')
+            $table->foreign('questionnaire_id')
+                ->references('questionnaire_id')
+                ->on('questionnaires')
                 ->onDelete('cascade');
         });
     }
