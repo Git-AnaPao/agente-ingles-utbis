@@ -13,7 +13,7 @@ class ProfessorController extends Controller
     {
         $studentRole = Role::where('role_name', 'student')->first();
         $students = User::whereHas('roles', fn($q) => $q->where('user_roles.role_id', $studentRole->role_id))
-            ->withCount(['progress' => fn($q) => $q->where('student_current_status', 'completed')])
+            ->withCount('progress')
             ->orderBy('user_name')
             ->get();
 
@@ -30,7 +30,7 @@ class ProfessorController extends Controller
 
         $progress = $user->progress()->with('lesson')->get();
         $lessons = Lesson::orderBy('lesson_cefr_level')->orderBy('lesson_sub_level')->get();
-        $completedIds = $progress->where('student_current_status', 'completed')->pluck('lesson_id')->toArray();
+        $completedIds = $progress->pluck('lesson_id')->toArray();
 
         return view('professor.student-progress', compact('user', 'lessons', 'completedIds', 'progress'));
     }

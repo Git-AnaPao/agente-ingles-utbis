@@ -7,8 +7,8 @@
 
     @php
         $user = Auth::user();
-        $totalXp = $user->progress()->where('student_current_status', 'completed')->sum('student_xp_earned');
-        $completedCount = $user->progress()->where('student_current_status', 'completed')->count();
+        $totalXp = $user->progress()->count();
+        $completedCount = $user->progress()->count();
         $totalLessons = \App\Models\Lesson::count();
         $completionPct = $totalLessons > 0 ? round(($completedCount / $totalLessons) * 100) : 0;
     @endphp

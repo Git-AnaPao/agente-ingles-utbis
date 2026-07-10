@@ -19,7 +19,6 @@ class Lesson extends Model
     protected $fillable = [
         'lesson_cefr_level',
         'lesson_sub_level',
-        'lesson_skill_type',
         'lesson_prompt_payload',
     ];
 
@@ -30,9 +29,14 @@ class Lesson extends Model
         ];
     }
 
+    public function questionnaires(): HasMany
+    {
+        return $this->hasMany(Questionnaire::class, 'lesson_id');
+    }
+
     public function resources(): HasMany
     {
-        return $this->hasMany(Resource::class, 'lesson_id');
+        return $this->hasManyThrough(Resource::class, Questionnaire::class, 'lesson_id', 'questionnaire_id');
     }
 
     public function attemptLogs(): HasMany

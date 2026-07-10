@@ -18,18 +18,13 @@ class ProgressController extends Controller
             ->groupBy('lesson_cefr_level');
 
         $completedLessonIds = $user->progress()
-            ->where('student_current_status', 'completed')
             ->pluck('lesson_id')
             ->toArray();
-
-        $totalXp = $user->progress()
-            ->where('student_current_status', 'completed')
-            ->sum('student_xp_earned');
 
         return response()->json([
             'levels' => $lessons,
             'completed_lesson_ids' => $completedLessonIds,
-            'total_xp' => $totalXp,
+            'total_xp' => $user->progress()->count(),
         ]);
     }
 
@@ -44,9 +39,8 @@ class ProgressController extends Controller
             ],
             [
                 'student_cefr_level' => $lesson->lesson_cefr_level,
-                'student_skill_type' => $lesson->lesson_skill_type,
+                'student_skill_type' => 'reading',
                 'student_sub_level' => $lesson->lesson_sub_level,
-                'student_current_status' => 'completed',
             ]
         );
 
@@ -54,8 +48,7 @@ class ProgressController extends Controller
 
         return response()->json([
             'message' => "Lección '{$topic}' completada.",
-            'xp_earned' => $progress->student_xp_earned,
-            'total_xp' => $user->progress()->where('student_current_status', 'completed')->sum('student_xp_earned'),
+            'total_xp' => $user->progress()->count(),
         ]);
     }
 
@@ -72,13 +65,10 @@ class ProgressController extends Controller
         $user = auth('api')->user();
 
         $attempt = AttemptLog::create([
-            'student_id' => $user->user_id,
+            'user_id' => $user->user_id,
             'lesson_id' => $lesson->lesson_id,
-            'exercise_type' => $request->exercise_type,
-            'question' => $request->question,
-            'user_answer' => $request->user_answer,
-            'correct' => $request->correct,
-            'time_spent' => $request->time_spent,
+            'attempt_score' => $request->correct ? 100 : 0,
+            'passed' => $request->correct,
         ]);
 
         return response()->json([
@@ -92,11 +82,7 @@ class ProgressController extends Controller
         $request->validate([
             'attempts' => 'required|array',
             'attempts.*.lesson_id' => 'required|exists:lessons,lesson_id',
-            'attempts.*.exercise_type' => 'required|string|max:30',
-            'attempts.*.question' => 'required|string',
-            'attempts.*.user_answer' => 'nullable|string',
             'attempts.*.correct' => 'required|boolean',
-            'attempts.*.time_spent' => 'nullable|integer',
         ]);
 
         $user = auth('api')->user();
@@ -104,13 +90,10 @@ class ProgressController extends Controller
 
         foreach ($request->attempts as $data) {
             $attempts[] = AttemptLog::create([
-                'student_id' => $user->user_id,
+                'user_id' => $user->user_id,
                 'lesson_id' => $data['lesson_id'],
-                'exercise_type' => $data['exercise_type'],
-                'question' => $data['question'],
-                'user_answer' => $data['user_answer'],
-                'correct' => $data['correct'],
-                'time_spent' => $data['time_spent'],
+                'attempt_score' => $data['correct'] ? 100 : 0,
+                'passed' => $data['correct'],
             ]);
         }
 
@@ -125,19 +108,13 @@ class ProgressController extends Controller
         $user = auth('api')->user();
 
         $totalAttempts = $user->attemptLogs()->count();
-        $correctAttempts = $user->attemptLogs()->where('correct', true)->count();
+        $correctAttempts = $user->attemptLogs()->where('passed', true)->count();
         $accuracy = $totalAttempts > 0 ? round(($correctAttempts / $totalAttempts) * 100, 1) : 0;
 
-        $completedCount = $user->progress()
-            ->where('student_current_status', 'completed')
-            ->count();
-
-        $totalXp = $user->progress()
-            ->where('student_current_status', 'completed')
-            ->sum('student_xp_earned');
+        $completedCount = $user->progress()->count();
 
         return response()->json([
-            'total_xp' => $totalXp,
+            'total_xp' => $completedCount,
             'completed_lessons' => $completedCount,
             'total_attempts' => $totalAttempts,
             'correct_attempts' => $correctAttempts,

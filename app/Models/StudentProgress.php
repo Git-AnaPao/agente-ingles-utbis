@@ -22,8 +22,6 @@ class StudentProgress extends Model
         'student_cefr_level',
         'student_sub_level',
         'student_skill_type',
-        'student_current_status',
-        'student_xp_earned',
     ];
 
     public function student(): BelongsTo

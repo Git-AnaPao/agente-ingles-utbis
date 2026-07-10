@@ -7,8 +7,8 @@
 
     @php
         $user = Auth::user();
-        $totalXp = $user->progress()->where('student_current_status', 'completed')->sum('student_xp_earned');
-        $completedIds = $user->progress()->where('student_current_status', 'completed')->pluck('lesson_id')->toArray();
+        $totalXp = $user->progress()->count();
+        $completedIds = $user->progress()->pluck('lesson_id')->toArray();
         $totalLessons = 0;
         foreach ($levels as $lvl) { $totalLessons += $lvl['total']; }
         $completionPct = $totalLessons > 0 ? round((count($completedIds) / $totalLessons) * 100) : 0;
@@ -176,7 +176,7 @@
                                         <span class="text-center mt-1.5 leading-tight max-14">
                                             <span class="block text-[9px] font-semibold truncate"
                                                   style="color: @if ($subCompleted) var(--color-primary) @elseif ($subLocked) #9CA3AF @else var(--color-text-secondary) @endif"
-                                            >{{ $lesson->lesson_skill_type }}</span>
+                                            >{{ $lesson->lesson_prompt_payload['topic'] ?? 'Lección' }}</span>
                                         </span>
                                     </div>
 

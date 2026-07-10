@@ -6,8 +6,8 @@
     </x-slot>
 
     @php
-        $totalXp = $progress->where('student_current_status', 'completed')->sum('student_xp_earned');
-        $completedCount = $progress->where('student_current_status', 'completed')->count();
+        $totalXp = $progress->count();
+        $completedCount = $progress->count();
         $totalLessons = $lessons->count();
         $attemptCount = $user->attemptLogs()->count();
         $correctAttempts = $user->attemptLogs()->where('passed', true)->count();

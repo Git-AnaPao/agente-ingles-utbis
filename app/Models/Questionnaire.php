@@ -11,26 +11,23 @@ class Questionnaire extends Model
 {
     use HasUuids;
 
-    protected $table = 'questionnaire';
+    protected $table = 'questionnaires';
     protected $primaryKey = 'questionnaire_id';
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
-        'resource_id',
-        'question_type',
-        'question_text',
-        'correct_answer',
-        'question_order',
+        'lesson_id',
+        'title',
     ];
 
-    public function resource(): BelongsTo
+    public function lesson(): BelongsTo
     {
-        return $this->belongsTo(Resource::class, 'resource_id');
+        return $this->belongsTo(Lesson::class, 'lesson_id');
     }
 
-    public function options(): HasMany
+    public function questions(): HasMany
     {
-        return $this->hasMany(QuestionnaireOption::class, 'questionnaire_id');
+        return $this->hasMany(Question::class, 'questionnaire_id');
     }
 }

@@ -7,21 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Resource extends Model
+class Question extends Model
 {
     use HasUuids;
 
-    protected $table = 'resources';
-    protected $primaryKey = 'resource_id';
+    protected $table = 'questions';
+    protected $primaryKey = 'question_id';
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
         'questionnaire_id',
-        'resource_type',
-        'resource_url',
-        'resource_title',
-        'resource_transcript',
+        'question_type',
+        'question_skill_type',
+        'question_text',
+        'correct_answer',
     ];
 
     public function questionnaire(): BelongsTo
@@ -29,8 +29,8 @@ class Resource extends Model
         return $this->belongsTo(Questionnaire::class, 'questionnaire_id');
     }
 
-    public function questions(): HasMany
+    public function options(): HasMany
     {
-        return $this->hasMany(Question::class, 'questionnaire_id');
+        return $this->hasMany(QuestionOption::class, 'question_id');
     }
 }

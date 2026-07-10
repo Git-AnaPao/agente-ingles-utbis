@@ -19,10 +19,8 @@
             <div class="solid-card p-8 animate-fade-up">
                 <div class="flex items-center gap-5 mb-8 pb-6 border-b" style="border-color: var(--color-border);">
                     <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shrink-0"
-                         style="background: @if ($lesson->lesson_skill_type === 'speaking') linear-gradient(135deg, var(--color-accent), var(--color-warning)) @else linear-gradient(135deg, var(--color-purple), #9B8FF0) @endif">
-                        @if ($lesson->lesson_skill_type === 'speaking') 🗣️
-                        @else 📝
-                        @endif
+                         style="background: linear-gradient(135deg, var(--color-primary), var(--color-purple));">
+                        📝
                     </div>
                     <div>
                         <h3 class="font-display font-bold text-2xl" style="color: var(--color-text);">
@@ -31,15 +29,6 @@
                         <div class="flex items-center gap-3 mt-1">
                             <span class="text-sm" style="color: var(--color-text-secondary);">
                                 Nivel {{ $lesson->lesson_cefr_level }} · Subnivel {{ $lesson->lesson_sub_level }}
-                            </span>
-                            <span class="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full"
-                                  @if ($lesson->lesson_skill_type === 'speaking')
-                                      style="background: color-mix(in srgb, var(--color-accent) 15%, transparent); color: var(--color-accent);"
-                                  @else
-                                      style="background: color-mix(in srgb, var(--color-purple) 15%, transparent); color: var(--color-purple);"
-                                  @endif
-                            >
-                                {{ ucfirst($lesson->lesson_skill_type) }}
                             </span>
                         </div>
                     </div>

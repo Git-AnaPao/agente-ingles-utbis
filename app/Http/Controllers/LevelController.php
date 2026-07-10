@@ -24,7 +24,6 @@ class LevelController extends Controller
             if ($user) {
                 $completedCount = $user->progress()
                     ->where('student_cefr_level', $level)
-                    ->where('student_current_status', 'completed')
                     ->count();
             }
 
@@ -50,9 +49,8 @@ class LevelController extends Controller
             ],
             [
                 'student_cefr_level' => $lesson->lesson_cefr_level,
-                'student_skill_type' => $lesson->lesson_skill_type,
+                'student_skill_type' => 'reading',
                 'student_sub_level' => $lesson->lesson_sub_level,
-                'student_current_status' => 'completed',
             ]
         );
 
