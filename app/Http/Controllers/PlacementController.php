@@ -22,8 +22,9 @@ class PlacementController extends Controller
         }
 
         $questions = $this->getQuestions();
+        $resultsData = null;
 
-        return view('placement.index', compact('questions'));
+        return view('placement.index', compact('questions', 'resultsData'));
     }
 
     public function submit(Request $request)
