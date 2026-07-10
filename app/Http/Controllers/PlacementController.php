@@ -16,26 +16,14 @@ class PlacementController extends Controller
             return redirect()->route('dashboard');
         }
 
-        $questions = $this->getQuestions();
-
-        if ($user->placementTests()->exists() && !request()->has('results')) {
+        if ($user->placementTests()->exists()) {
             return redirect()->route('levels.index')
                 ->with('info', 'Ya completaste el placement test.');
         }
 
-        $resultsData = null;
-        if (request()->has('results') && $user->placementTests()->exists()) {
-            $test = $user->placementTests()->latest()->first();
-            $resultsData = [
-                'level' => $test->result_level,
-                'score' => round($test->score, 1),
-                'correct' => $test->correct_answers,
-                'total' => $test->total_questions,
-                'breakdown' => json_decode($test->level_breakdown, true) ?? [],
-            ];
-        }
+        $questions = $this->getQuestions();
 
-        return view('placement.index', compact('questions', 'resultsData'));
+        return view('placement.index', compact('questions'));
     }
 
     public function submit(Request $request)
@@ -124,7 +112,18 @@ class PlacementController extends Controller
             'level_breakdown' => json_encode($levelBreakdown),
         ]);
 
-        return redirect()->route('placement.index', ['results' => 1]);
+        $resultsData = [
+            'level' => $placedLevel,
+            'score' => round($score, 1),
+            'correct' => $totalCorrect,
+            'total' => 75,
+            'breakdown' => $levelBreakdown,
+        ];
+
+        return view('placement.index', [
+            'questions' => $this->getQuestions(),
+            'resultsData' => $resultsData,
+        ]);
     }
 
     public function skip()
