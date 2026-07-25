@@ -4,8 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Placement Test · Agente Inglés UTBIS</title>
-
     <script>
         (function() {
             var t = localStorage.getItem('theme');
@@ -15,13 +13,15 @@
         })();
     </script>
 
+    <title>Placement Test · Agente Inglés UTBIS</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased" x-data="theme" x-init="init()">
+<body class="font-sans antialiased" x-data="placementTest()">
 
     <button @click="toggleTheme()"
             class="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md transition-all duration-300 hover:scale-110"
@@ -30,9 +30,20 @@
             aria-label="Cambiar tema">
         <span x-text="theme === 'dark' ? '&#9728;&#65039;' : '&#127769;'" class="text-lg"></span>
     </button>
+    <button @click="toggleLang()"
+            class="fixed top-16 right-4 z-50 px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all duration-300 hover:scale-110 sm:hidden"
+            style="background: var(--color-glass); border: 1px solid var(--color-glass-border); backdrop-filter: blur(8px); color: #fff;"
+            aria-label="Cambiar idioma">
+        <span x-text="lang === 'en' ? 'ES' : 'EN'"></span>
+    </button>
+    <button @click="toggleLang()"
+            class="hidden sm:flex fixed top-4 right-16 z-50 px-4 py-2 rounded-full font-bold text-sm shadow-md transition-all duration-300 hover:scale-110 items-center gap-2"
+            style="background: var(--color-glass); border: 1px solid var(--color-glass-border); backdrop-filter: blur(8px); color: #fff;"
+            aria-label="Cambiar idioma">
+        <span x-text="lang === 'en' ? '🇪🇸 Español' : '🇬🇧 English'"></span>
+    </button>
     <div class="min-h-screen flex flex-col items-center justify-center px-4 py-8"
-         style="background: linear-gradient(135deg, #27594B 0%, #518C4F 50%, #F2B950 100%);"
-         x-data="placementTest()">
+         style="background: linear-gradient(135deg, #27594B 0%, #518C4F 50%, #F2B950 100%);">
 
         <div class="w-full max-w-7xl">
 
@@ -41,7 +52,7 @@
                 <div class="animate-fade-up">
                     <div class="text-center mb-8">
                         <span class="text-6xl block mb-2">&#x1F3C6;</span>
-                        <h1 class="font-display font-bold text-3xl text-white">Test Complete!</h1>
+                        <h1 class="font-display font-bold text-3xl text-white" x-text="t('testComplete')"></h1>
                     </div>
 
                     <div class="rounded-2xl bg-white p-8 sm:p-12 shadow-xl mb-4">
@@ -62,7 +73,7 @@
                                 </div>
                             </div>
                             <div class="text-center">
-                                <p class="text-sm text-gray-500 mb-1">Your level is</p>
+                                <p class="text-sm text-gray-500 mb-1" x-text="t('yourLevel')"></p>
                                 <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-lg font-bold text-white"
                                      :style="'background:' + levelColors[results.level]">
                                     <span x-text="results.level"></span>
@@ -73,7 +84,7 @@
                         </div>
 
                         <div class="space-y-3 mb-6">
-                            <h3 class="font-display font-bold text-sm" style="color: #374151;">Score by level</h3>
+                            <h3 class="font-display font-bold text-sm" style="color: #374151;" x-text="t('scoreByLevel')"></h3>
                             <template x-for="lvl in ['A1','A2','B1','B2','C1']" :key="lvl">
                                 <div class="flex items-center gap-3">
                                     <span class="w-10 text-xs font-bold" :style="'color:' + levelColors[lvl]" x-text="lvl"></span>
@@ -94,13 +105,13 @@
                         <div class="flex flex-col sm:flex-row gap-3">
                             <a href="{{ route('levels.index') }}"
                                class="flex-1 px-6 py-3 rounded-2xl font-bold text-sm text-white text-center shadow-lg transition-all duration-200 hover:-translate-y-0.5"
-                               :style="'background: linear-gradient(135deg, ' + levelColors[results.level] + ', ' + levelColors[results.level] + 'aa)'">
-                                Start Learning &#x2192;
+                                :style="'background: linear-gradient(135deg, ' + levelColors[results.level] + ', ' + levelColors[results.level] + 'aa)'">
+                                <span x-text="t('startLearning')"></span>
                             </a>
                             <a href="{{ route('placement.index') }}"
                                class="px-6 py-3 rounded-2xl font-bold text-sm text-center transition-all duration-200"
                                style="background: #f3f4f6; color: #374151;">
-                                Retake Test
+                                <span x-text="t('retakeTest')"></span>
                             </a>
                         </div>
                     </div>
@@ -112,42 +123,38 @@
                 <div class="animate-fade-up">
                     <div class="text-center mb-8">
                         <span class="text-6xl block mb-2">&#x1F989;</span>
-                        <h1 class="font-display font-bold text-3xl text-white">Placement Test</h1>
-                        <p class="mt-2 text-white/80 text-sm">
-                            English Level Assessment &mdash; CEFR A1&ndash;C1
-                        </p>
+                        <h1 class="font-display font-bold text-3xl text-white" x-text="t('title')"></h1>
+                        <p class="mt-2 text-white/80 text-sm" x-text="t('subtitle')"></p>
                     </div>
 
                     <div class="rounded-2xl bg-white p-8 sm:p-12 shadow-xl">
-                        <h2 class="font-display font-bold text-xl mb-4" style="color: #1f2937;">Test Instructions</h2>
+                        <h2 class="font-display font-bold text-xl mb-4" style="color: #1f2937;" x-text="t('instructions')"></h2>
                         <ul class="space-y-3 text-sm mb-6" style="color: #374151;">
-                            <li class="flex gap-2"><span class="text-brand-verde font-bold">1.</span> Read each question carefully before answering.</li>
-                            <li class="flex gap-2"><span class="text-brand-verde font-bold">2.</span> Select only one answer for each question.</li>
-                            <li class="flex gap-2"><span class="text-brand-verde font-bold">3.</span> There is only one correct answer.</li>
-                            <li class="flex gap-2"><span class="text-brand-verde font-bold">4.</span> Do not use dictionaries, translators, or external resources.</li>
-                            <li class="flex gap-2"><span class="text-brand-verde font-bold">5.</span> There is no penalty for incorrect answers.</li>
-                            <li class="flex gap-2"><span class="text-brand-verde font-bold">6.</span> Once submitted, answers cannot be modified.</li>
-                            <li class="flex gap-2"><span class="text-brand-verde font-bold">7.</span> Answer independently without assistance.</li>
+                            <li class="flex gap-2"><span class="text-brand-verde font-bold">1.</span> <span x-text="t('i1')"></span></li>
+                            <li class="flex gap-2"><span class="text-brand-verde font-bold">2.</span> <span x-text="t('i2')"></span></li>
+                            <li class="flex gap-2"><span class="text-brand-verde font-bold">3.</span> <span x-text="t('i3')"></span></li>
+                            <li class="flex gap-2"><span class="text-brand-verde font-bold">4.</span> <span x-text="t('i4')"></span></li>
+                            <li class="flex gap-2"><span class="text-brand-verde font-bold">5.</span> <span x-text="t('i5')"></span></li>
+                            <li class="flex gap-2"><span class="text-brand-verde font-bold">6.</span> <span x-text="t('i6')"></span></li>
+                            <li class="flex gap-2"><span class="text-brand-verde font-bold">7.</span> <span x-text="t('i7')"></span></li>
                         </ul>
 
                         <div class="rounded-xl p-4 mb-6" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
-                            <p class="text-sm font-semibold" style="color: #166534;">
-                                &#x23F1;&#xFE0F; Recommended time: approximately 50&ndash;60 minutes
-                            </p>
-                            <p class="text-xs mt-1" style="color: #15803d;">75 questions &bull; Levels A1, A2, B1, B2, C1</p>
+                            <p class="text-sm font-semibold" style="color: #166534;" x-text="t('timeRec')"></p>
+                            <p class="text-xs mt-1" style="color: #15803d;" x-text="t('timeInfo')"></p>
                         </div>
 
                         <button type="button" @click="startTest()"
                                 class="w-full px-6 py-3 rounded-2xl font-bold text-sm text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5"
                                 style="background: linear-gradient(135deg, #2D6A4F, #40916C);">
-                            Start Test &#x2192;
+                            <span x-text="t('startTest')"></span>
                         </button>
                     </div>
 
                     <div class="text-center mt-6">
                         <a href="{{ route('placement.skip') }}" class="text-sm text-white/60 hover:text-white/80 underline transition"
-                           onclick="return confirm('Are you sure? You will start from the most basic level.');">
-                            Skip &mdash; start from A1
+                           @click.prevent="if(confirm(t('skipConfirm'))) window.location.href='{{ route('placement.skip') }}'">
+                            <span x-text="t('skip')"></span>
                         </a>
                     </div>
                 </div>
@@ -265,7 +272,7 @@
                                 class="px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200"
                                 style="background: #e5e7eb; color: #374151;"
                                 :class="currentIndex === 0 ? 'opacity-40 pointer-events-none' : ''">
-                            &larr; Previous
+                            &larr; <span x-text="t('previous')"></span>
                         </button>
 
                         <span class="text-sm font-semibold text-white" x-text="(currentIndex + 1) + ' / ' + total"></span>
@@ -274,7 +281,7 @@
                                 class="px-6 py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200"
                                 style="background: #F28729; color: white;"
                                 x-show="currentIndex < total - 1">
-                            Next &rarr;
+                            <span x-text="t('next')"></span>
                         </button>
 
                         <button type="submit"
@@ -283,7 +290,7 @@
                                 x-show="currentIndex === total - 1"
                                 :disabled="answeredCount < total"
                                 :class="answeredCount < total ? 'opacity-50 cursor-not-allowed' : ''">
-                            &#x2705; Submit (<span x-text="answeredCount"></span>/<span x-text="total"></span>)
+                            <span x-text="t('submit')"></span> (<span x-text="answeredCount"></span>/<span x-text="total"></span>)
                         </button>
                     </div>
                 </form>
@@ -294,14 +301,12 @@
                 <div class="fixed inset-0 z-50 flex items-center justify-center" style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
                     <div class="rounded-2xl bg-white p-8 shadow-2xl text-center max-w-md mx-4">
                         <span class="text-5xl block mb-4">&#x23F0;</span>
-                        <h2 class="font-display font-bold text-2xl mb-2" style="color: #1f2937;">Time's Up!</h2>
-                        <p class="text-sm mb-6" style="color: #6b7280;">
-                            The recommended time has elapsed. You can still submit your answers.
-                        </p>
+                        <h2 class="font-display font-bold text-2xl mb-2" style="color: #1f2937;" x-text="t('timeUp')"></h2>
+                        <p class="text-sm mb-6" style="color: #6b7280;" x-text="t('timeUpMsg')"></p>
                         <button type="button" @click="submitTest()"
                                 class="px-8 py-3 rounded-2xl font-bold text-sm text-white shadow-lg"
                                 style="background: linear-gradient(135deg, #2D6A4F, #40916C);">
-                            Submit Now
+                            <span x-text="t('submitNow')"></span>
                         </button>
                     </div>
                 </div>
@@ -314,8 +319,11 @@
             const rawQuestions = @json($questions);
             const total = rawQuestions.length;
             const sessionResults = @json($resultsData);
-
             return {
+                lang: localStorage.getItem('placement_lang') || 'en',
+                theme: localStorage.getItem('theme') || 'light',
+                grayscale: localStorage.getItem('grayscale') === 'true',
+
                 phase: sessionResults ? 'results' : 'intro',
                 currentIndex: 0,
                 total: total,
@@ -352,6 +360,85 @@
 
                 get answeredCount() {
                     return Object.keys(this.answers).length;
+                },
+
+                toggleTheme() {
+                    this.theme = this.theme === 'dark' ? 'light' : 'dark';
+                    localStorage.setItem('theme', this.theme);
+                    document.documentElement.setAttribute('data-theme', this.theme);
+                },
+                toggleGrayscale() {
+                    this.grayscale = !this.grayscale;
+                    localStorage.setItem('grayscale', this.grayscale);
+                    document.documentElement.setAttribute('data-grayscale', this.grayscale);
+                },
+
+                toggleLang() {
+                    this.lang = this.lang === 'en' ? 'es' : 'en';
+                    localStorage.setItem('placement_lang', this.lang);
+                },
+
+                translations: {
+                    en: {
+                        title: 'Placement Test',
+                        subtitle: 'English Level Assessment — CEFR A1–C1',
+                        instructions: 'Test Instructions',
+                        i1: 'Read each question carefully before answering.',
+                        i2: 'Select only one answer for each question.',
+                        i3: 'There is only one correct answer.',
+                        i4: 'Do not use dictionaries, translators, or external resources.',
+                        i5: 'There is no penalty for incorrect answers.',
+                        i6: 'Once submitted, answers cannot be modified.',
+                        i7: 'Answer independently without assistance.',
+                        timeRec: '⏱ Recommended time: approximately 50–60 minutes',
+                        timeInfo: '75 questions • Levels A1, A2, B1, B2, C1',
+                        startTest: 'Start Test →',
+                        skip: 'Skip — start from A1',
+                        skipConfirm: 'Are you sure? You will start from the most basic level.',
+                        testComplete: 'Test Complete!',
+                        yourLevel: 'Your level is',
+                        scoreByLevel: 'Score by level',
+                        startLearning: 'Start Learning →',
+                        retakeTest: 'Retake Test',
+                        previous: '← Previous',
+                        next: 'Next →',
+                        submit: '✅ Submit',
+                        timeUp: "Time's Up!",
+                        timeUpMsg: 'The recommended time has elapsed. You can still submit your answers.',
+                        submitNow: 'Submit Now',
+                    },
+                    es: {
+                        title: 'Examen de Nivel',
+                        subtitle: 'Evaluación de Nivel de Inglés — CEFR A1–C1',
+                        instructions: 'Instrucciones del Examen',
+                        i1: 'Lee cada pregunta con atención antes de responder.',
+                        i2: 'Selecciona solo una respuesta por pregunta.',
+                        i3: 'Solo hay una respuesta correcta.',
+                        i4: 'No uses diccionarios, traductores ni recursos externos.',
+                        i5: 'No hay penalización por respuestas incorrectas.',
+                        i6: 'Una vez enviado, no se pueden modificar las respuestas.',
+                        i7: 'Responde de forma independiente sin asistencia.',
+                        timeRec: '⏱ Tiempo recomendado: aproximadamente 50–60 minutos',
+                        timeInfo: '75 preguntas • Niveles A1, A2, B1, B2, C1',
+                        startTest: 'Iniciar Examen →',
+                        skip: 'Omitir — empezar desde A1',
+                        skipConfirm: '¿Estás seguro? Empezarás desde el nivel más básico.',
+                        testComplete: '¡Examen Completado!',
+                        yourLevel: 'Tu nivel es',
+                        scoreByLevel: 'Puntuación por nivel',
+                        startLearning: 'Empezar a Aprender →',
+                        retakeTest: 'Repetir Examen',
+                        previous: '← Anterior',
+                        next: 'Siguiente →',
+                        submit: '✅ Enviar',
+                        timeUp: '¡Se acabó el tiempo!',
+                        timeUpMsg: 'Ha pasado el tiempo recomendado. Aún puedes enviar tus respuestas.',
+                        submitNow: 'Enviar Ahora',
+                    },
+                },
+
+                t(key) {
+                    return this.translations[this.lang][key] || key;
                 },
 
                 startTest() {

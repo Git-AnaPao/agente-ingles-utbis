@@ -30,7 +30,13 @@ class GoogleController extends Controller
      */
     public function callback(): RedirectResponse
     {
-        $googleUser = Socialite::driver('google')->stateless()->user();
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+        } catch (\Exception $e) {
+            return redirect()->route('login')->withErrors([
+                'email' => 'No se pudo autenticar con Google. Por favor, intente de nuevo.',
+            ]);
+        }
 
         $email = Str::lower($googleUser->getEmail());
 
