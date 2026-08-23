@@ -12,7 +12,7 @@ class CheckRole
     {
         $user = $request->user();
 
-        if (!$user || !in_array($user->role, $roles)) {
+        if (! $user || ! collect($roles)->contains(fn (string $role): bool => $user->hasRole($role))) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
 

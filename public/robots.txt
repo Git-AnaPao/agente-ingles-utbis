@@ -1,2 +1,12 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /chat
+Disallow: /dashboard
+Disallow: /levels
+Disallow: /lessons/
+Disallow: /listening
+Disallow: /placement
+Disallow: /professor/
+Disallow: /profile
+Disallow: /auth/

@@ -31,7 +31,13 @@ class LessonSeeder extends Seeder
         ];
 
         foreach ($lessons as $data) {
-            Lesson::create($data);
+            Lesson::firstOrCreate(
+                [
+                    'lesson_cefr_level' => $data['lesson_cefr_level'],
+                    'lesson_sub_level' => $data['lesson_sub_level'],
+                ],
+                ['lesson_prompt_payload' => $data['lesson_prompt_payload']],
+            );
         }
     }
 }

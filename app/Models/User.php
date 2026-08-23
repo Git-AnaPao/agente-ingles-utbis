@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
 use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,13 +12,16 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable implements JWTSubject, MustVerifyEmail
 {
-    use HasFactory, HasUuids, Notifiable, CanResetPassword;
+    use CanResetPassword, HasFactory, HasUuids, Notifiable;
 
     protected $table = 'users';
+
     protected $primaryKey = 'user_id';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -30,12 +33,18 @@ class User extends Authenticatable implements JWTSubject
         'user_last_name',
         'user_middle_name',
         'user_status',
+        'last_activity_at',
+        'current_streak',
+        'longest_streak',
+        'xp',
+        'email_verified_at',
     ];
 
     protected $hidden = [
+        'google_id',
+        'user_cel',
         'user_password',
         'remember_token',
-        'roles',
     ];
 
     protected $appends = ['name', 'email', 'role'];
@@ -55,7 +64,12 @@ class User extends Authenticatable implements JWTSubject
         return $this->roles->first()?->role_name ?? 'student';
     }
 
-    public function getAuthPassword()
+    public function getAuthPasswordName(): string
+    {
+        return 'user_password';
+    }
+
+    public function getAuthPassword(): ?string
     {
         return $this->user_password;
     }
@@ -84,6 +98,11 @@ class User extends Authenticatable implements JWTSubject
     {
         return [
             'user_password' => 'hashed',
+            'email_verified_at' => 'datetime',
+            'last_activity_at' => 'datetime',
+            'current_streak' => 'integer',
+            'longest_streak' => 'integer',
+            'xp' => 'integer',
         ];
     }
 
@@ -94,7 +113,7 @@ class User extends Authenticatable implements JWTSubject
 
     public function hasRole(string $roleName): bool
     {
-        return $this->roles->contains(fn($r) => $r->role_name === $roleName);
+        return $this->roles->contains(fn ($r) => $r->role_name === $roleName);
     }
 
     public function isStudent(): bool

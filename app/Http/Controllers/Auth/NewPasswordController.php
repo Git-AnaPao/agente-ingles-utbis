@@ -31,6 +31,10 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'email' => Str::lower(trim((string) $request->input('email'))),
+        ]);
+
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
@@ -38,9 +42,18 @@ class NewPasswordController extends Controller
         ]);
 
         $foundUser = User::where('user_email', $request->email)->first();
-        $credentials = $foundUser
-            ? ['user_email' => $foundUser->user_email, 'password' => $request->password, 'password_confirmation' => $request->password_confirmation, 'token' => $request->token]
-            : $request->only('email', 'password', 'password_confirmation', 'token');
+        if ($foundUser && blank($foundUser->getAuthPassword())) {
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => __('passwords.google_account')]);
+        }
+
+        $credentials = [
+            'user_email' => $request->email,
+            'password' => $request->password,
+            'password_confirmation' => $request->password_confirmation,
+            'token' => $request->token,
+        ];
 
         $status = Password::reset(
             $credentials,

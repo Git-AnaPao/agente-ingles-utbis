@@ -5,15 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Lesson extends Model
 {
     use HasUuids;
 
     protected $table = 'lessons';
+
     protected $primaryKey = 'lesson_id';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -34,9 +39,21 @@ class Lesson extends Model
         return $this->hasMany(Questionnaire::class, 'lesson_id');
     }
 
-    public function resources(): HasMany
+    public function listeningLessons(): HasMany
     {
-        return $this->hasManyThrough(Resource::class, Questionnaire::class, 'lesson_id', 'questionnaire_id');
+        return $this->hasMany(ListeningLesson::class, 'lesson_id');
+    }
+
+    public function resources(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Resource::class,
+            Questionnaire::class,
+            'lesson_id',
+            'questionnaire_id',
+            'lesson_id',
+            'questionnaire_id',
+        );
     }
 
     public function attemptLogs(): HasMany

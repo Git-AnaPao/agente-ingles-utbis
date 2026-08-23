@@ -1,55 +1,46 @@
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium" style="color: var(--color-text);">
-            {{ __('Delete Account') }}
-        </h2>
+<div class="space-y-5">
+    <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+        Al eliminar tu cuenta se borrarán permanentemente tus avances y datos asociados. Esta acción no se puede deshacer.
+    </p>
 
-        <p class="mt-1 text-sm" style="color: var(--color-text-secondary);">
-            {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
-        </p>
-    </header>
+    <x-danger-button type="button"
+                     x-data
+                     x-on:click="$dispatch('open-modal', 'confirm-user-deletion')">
+        Eliminar cuenta
+    </x-danger-button>
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Delete Account') }}</x-danger-button>
-
-    <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
+    <x-modal name="confirm-user-deletion"
+             :show="$errors->userDeletion->isNotEmpty()"
+             maxWidth="lg"
+             titleId="confirm-user-deletion-title"
+             focusable>
+        <form method="post" action="{{ route('profile.destroy') }}" class="p-5 sm:p-6">
             @csrf
             @method('delete')
 
-            <h2 class="text-lg font-medium" style="color: var(--color-text);">
-                {{ __('Are you sure you want to delete your account?') }}
+            <h2 id="confirm-user-deletion-title" class="text-lg font-bold" style="color: var(--color-text);">
+                ¿Eliminar tu cuenta permanentemente?
             </h2>
 
-            <p class="mt-1 text-sm" style="color: var(--color-text-secondary);">
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
+            <p class="mt-2 text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                Escribe tu contraseña para confirmar. Se cerrará tu sesión y se eliminarán los datos de la cuenta.
             </p>
 
             <div class="mt-6">
-                <x-input-label for="password" value="{{ __('Password') }}" class="sr-only" />
-
-                <x-text-input
-                    id="password"
-                    name="password"
-                    type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('Password') }}"
-                />
-
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
+                <x-input-label for="delete_account_password" value="Contraseña" />
+                <x-text-input id="delete_account_password"
+                              name="password"
+                              type="password"
+                              :invalid="$errors->userDeletion->has('password')"
+                              aria-describedby="delete-password-error"
+                              required autocomplete="current-password" />
+                <x-input-error id="delete-password-error" :messages="$errors->userDeletion->get('password')" />
             </div>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
-
-                <x-danger-button class="ms-3">
-                    {{ __('Delete Account') }}
-                </x-danger-button>
+            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <x-secondary-button x-on:click="$dispatch('close')">Cancelar</x-secondary-button>
+                <x-danger-button data-loading-text="Eliminando...">Eliminar definitivamente</x-danger-button>
             </div>
         </form>
     </x-modal>
-</section>
+</div>

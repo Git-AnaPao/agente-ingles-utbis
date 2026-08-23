@@ -10,6 +10,7 @@
         "laravel/framework": "^12.0",
         "laravel/socialite": "^5.28",
         "laravel/tinker": "^2.10.1",
+        "phpoffice/phpspreadsheet": "^5.9",
         "tymon/jwt-auth": "^2.3"
     },
     "require-dev": {
@@ -36,11 +37,10 @@
     },
     "scripts": {
         "setup": [
-            "composer install",
+            "composer install --no-interaction --prefer-dist",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
-            "@php artisan key:generate",
-            "@php artisan migrate --force",
-            "npm install",
+            "@php scripts/setup.php",
+            "npm ci --no-audit --no-fund",
             "npm run build"
         ],
         "dev": [
@@ -62,9 +62,7 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
         "post-create-project-cmd": [
-            "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --graceful --ansi"
+            "@php scripts/setup.php"
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"

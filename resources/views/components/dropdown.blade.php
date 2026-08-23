@@ -1,4 +1,4 @@
-@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1'])
+@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1', 'id' => 'dropdown-panel'])
 
 @php
 $alignmentClasses = match ($align) {
@@ -14,12 +14,19 @@ $width = match ($width) {
 };
 @endphp
 
-<div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
+<div class="relative"
+     x-data="{ open: false }"
+     @click.outside="open = false"
+     @close.stop="open = false"
+     @keydown.escape.window="if (open) { open = false; $nextTick(() => $refs.trigger?.focus()) }">
     <div @click="open = ! open">
         {{ $trigger }}
     </div>
 
     <div x-show="open"
+            x-cloak
+            id="{{ $id }}"
+            :aria-hidden="(!open).toString()"
             x-transition:enter="transition ease-out duration-200"
             x-transition:enter-start="opacity-0 scale-95"
             x-transition:enter-end="opacity-100 scale-100"

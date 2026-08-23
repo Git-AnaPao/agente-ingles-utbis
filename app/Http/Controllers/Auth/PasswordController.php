@@ -15,6 +15,13 @@ class PasswordController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        if (blank($request->user()->getAuthPassword())) {
+            return back()->with(
+                'error',
+                'Tu cuenta usa el acceso de Google y no tiene una contraseña local que actualizar.',
+            );
+        }
+
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
             'password' => ['required', Password::defaults(), 'confirmed'],

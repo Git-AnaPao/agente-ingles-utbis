@@ -1,88 +1,117 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-display font-bold text-xl text-white leading-tight">
-            📊 Progreso de {{ $user->name }}
-        </h2>
-    </x-slot>
-
+<x-app-layout :title="'Progreso de ' . $user->user_name">
     @php
-        $totalXp = $progress->count();
-        $completedCount = $progress->count();
         $totalLessons = $lessons->count();
-        $attemptCount = $user->attemptLogs()->count();
-        $correctAttempts = $user->attemptLogs()->where('passed', true)->count();
-        $accuracy = $attemptCount > 0 ? round(($correctAttempts / $attemptCount) * 100, 1) : 0;
+        $totalXp = (int) ($user->xp ?? 0);
+        $displayName = trim(implode(' ', array_filter([
+            $user->user_name,
+            $user->user_last_name,
+            $user->user_middle_name,
+        ])));
 
         $cefrOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
         $levels = [];
-        foreach ($cefrOrder as $lvl) {
-            $lvlLessons = $lessons->where('lesson_cefr_level', $lvl);
-            $doneInLevel = $completedIds ? count(array_intersect($lvlLessons->pluck('lesson_id')->toArray(), $completedIds)) : 0;
+        foreach ($cefrOrder as $levelName) {
+            $levelLessons = $lessons->where('lesson_cefr_level', $levelName);
+            $doneInLevel = count(array_intersect($levelLessons->pluck('lesson_id')->all(), $completedIds));
             $levels[] = [
-                'cefr' => $lvl,
-                'lessons' => $lvlLessons,
-                'total' => $lvlLessons->count(),
+                'cefr' => $levelName,
+                'total' => $levelLessons->count(),
                 'completed' => $doneInLevel,
             ];
         }
     @endphp
 
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-
-            <a href="{{ route('professor.dashboard') }}" class="inline-flex items-center gap-1 text-sm font-semibold mb-4 hover:underline"
-               style="color: var(--color-primary);">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                Volver al panel
-            </a>
-
-            {{-- Stats --}}
-            <div class="solid-card p-4 flex items-center justify-around gap-4 text-white text-sm font-semibold"
-                 style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border-color: transparent;">
-                <div class="text-center">
-                    <span class="block text-2xl">{{ $totalXp }}</span>
-                    <span class="text-white/80 text-xs">XP</span>
+    <div class="py-8 sm:py-10">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            
+            {{-- Header de Ficha de Estudiante --}}
+            <header class="glass-card p-6 sm:p-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border"
+                    style="border-color: var(--color-glass-border);">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold font-display shrink-0 border shadow-sm"
+                         style="background: color-mix(in srgb, var(--color-indigo) 12%, transparent); border-color: color-mix(in srgb, var(--color-indigo) 30%, transparent); color: #6366F1;">
+                        {{ strtoupper(substr($user->user_name, 0, 1)) }}
+                    </div>
+                    <div class="min-w-0">
+                        <span class="text-xs font-bold font-mono uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Expediente de Aprendizaje</span>
+                        <h1 class="font-display font-black text-xl sm:text-2xl leading-tight truncate" style="color: var(--color-text);">
+                            {{ $displayName }}
+                        </h1>
+                        <p class="text-xs sm:text-sm font-mono mt-0.5 text-slate-400 truncate">{{ $user->user_email }}</p>
+                    </div>
                 </div>
-                <div class="text-center">
-                    <span class="block text-2xl">{{ $completedCount }}/{{ $totalLessons }}</span>
-                    <span class="text-white/80 text-xs">Completadas</span>
-                </div>
-                <div class="text-center">
-                    <span class="block text-2xl">{{ $attemptCount }}</span>
-                    <span class="text-white/80 text-xs">Intentos</span>
-                </div>
-                <div class="text-center">
-                    <span class="block text-2xl">{{ $accuracy }}%</span>
-                    <span class="text-white/80 text-xs">Precisión</span>
-                </div>
-            </div>
 
-            {{-- Levels map --}}
-            <div class="solid-card p-6">
-                <h3 class="font-display font-bold text-lg mb-4" style="color: var(--color-primary);">Niveles</h3>
+                <a href="{{ route('professor.dashboard') }}" class="btn-secondary text-xs px-4 py-2.5 inline-flex items-center gap-1.5 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    <span>Volver al panel docente</span>
+                </a>
+            </header>
 
-                <div class="space-y-4">
+            {{-- Métricas del Estudiante --}}
+            <section aria-labelledby="student-metrics-title" class="animate-fade-up">
+                <h2 id="student-metrics-title" class="sr-only">Métricas del estudiante</h2>
+                <dl class="grid grid-cols-2 gap-4 lg:grid-cols-5">
+                    <div class="solid-card p-5 text-center">
+                        <dd class="text-2xl sm:text-3xl font-extrabold font-display text-amber-500">{{ number_format($totalXp) }}</dd>
+                        <dt class="text-xs font-bold uppercase tracking-wider mt-1" style="color: var(--color-text-secondary);"><span lang="en">XP</span> Totales</dt>
+                    </div>
+                    <div class="solid-card p-5 text-center">
+                        <dd class="text-2xl sm:text-3xl font-extrabold font-display text-emerald-500">{{ $completedCount }}/{{ $totalLessons }}</dd>
+                        <dt class="text-xs font-bold uppercase tracking-wider mt-1" style="color: var(--color-text-secondary);">Lecciones</dt>
+                    </div>
+                    <div class="solid-card p-5 text-center">
+                        <dd class="text-2xl sm:text-3xl font-extrabold font-display text-sky-500">{{ $attemptCount }}</dd>
+                        <dt class="text-xs font-bold uppercase tracking-wider mt-1" style="color: var(--color-text-secondary);">Evaluaciones</dt>
+                    </div>
+                    <div class="solid-card p-5 text-center">
+                        <dd class="text-2xl sm:text-3xl font-extrabold font-display text-indigo-500">{{ $approvalRate === null ? '–' : $approvalRate.'%' }}</dd>
+                        <dt class="text-xs font-bold uppercase tracking-wider mt-1" style="color: var(--color-text-secondary);">Tasa de aprobación</dt>
+                    </div>
+                    <div class="solid-card col-span-2 p-5 text-center lg:col-span-1 border-indigo-500/30">
+                        <dd class="text-2xl sm:text-3xl font-extrabold font-display font-mono text-purple-500">{{ $currentCefr ?: 'A1' }}</dd>
+                        <dt class="text-xs font-bold uppercase tracking-wider mt-1" style="color: var(--color-text-secondary);">Nivel CEFR</dt>
+                    </div>
+                </dl>
+            </section>
+
+            {{-- Avance por Nivel CEFR --}}
+            <section class="glass-card p-6 sm:p-8 border shadow-xl animate-fade-up" style="border-color: var(--color-glass-border);" aria-labelledby="levels-progress-title">
+                <h2 id="levels-progress-title" class="font-display font-extrabold text-lg sm:text-xl mb-6" style="color: var(--color-text);">
+                    Desglose de Avance por Nivel CEFR
+                </h2>
+
+                <div class="space-y-6">
                     @foreach ($levels as $level)
                         @php
-                            $pct = $level['total'] > 0 ? round(($level['completed'] / $level['total']) * 100) : 0;
+                            $percent = $level['total'] > 0
+                                ? min(100, round(($level['completed'] / $level['total']) * 100))
+                                : 0;
                         @endphp
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-sm font-semibold" style="color: var(--color-text);">
-                                    {{ $level['cefr'] }}
-                                </span>
-                                <span class="text-xs font-semibold" style="color: var(--color-text-secondary);">
-                                    {{ $level['completed'] }}/{{ $level['total'] }}
+                        <div class="p-4 rounded-2xl border" style="background: var(--color-bg); border-color: var(--color-border);">
+                            <div class="flex items-center justify-between gap-3 mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-8 h-8 rounded-xl flex items-center justify-center font-mono font-bold text-xs"
+                                          style="background: color-mix(in srgb, var(--color-primary) 15%, transparent); color: var(--color-primary);">
+                                        {{ $level['cefr'] }}
+                                    </span>
+                                    <span class="text-sm font-bold" style="color: var(--color-text);">Nivel {{ $level['cefr'] }}</span>
+                                </div>
+                                <span class="text-xs font-mono font-bold" style="color: var(--color-text-secondary);">
+                                    {{ $level['completed'] }}/{{ $level['total'] }} lecciones ({{ $percent }}%)
                                 </span>
                             </div>
-                            <div class="w-full h-2.5 rounded-full" style="background: var(--color-border);">
-                                <div class="h-full rounded-full transition-all" style="background: var(--color-primary-light); width: {{ $pct }}%;"></div>
+                            <div class="progress-bar h-2.5"
+                                 role="progressbar"
+                                 aria-label="Progreso en nivel {{ $level['cefr'] }}"
+                                 aria-valuenow="{{ $percent }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                <div class="progress-bar-fill" style="width: {{ $percent }}%;"></div>
                             </div>
                         </div>
                     @endforeach
                 </div>
-            </div>
-
+            </section>
         </div>
     </div>
 </x-app-layout>

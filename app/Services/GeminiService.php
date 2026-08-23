@@ -2,17 +2,33 @@
 
 namespace App\Services;
 
+use App\Contracts\AiProvider;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use JsonException;
+use RuntimeException;
+use Throwable;
+use UnexpectedValueException;
 
-class GeminiService
+class GeminiService implements AiProvider
 {
-    private string $apiKey;
+    private string $apiKey = '';
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+    private string $model = 'gemini-3.6-flash';
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.api_key');
+        $this->apiKey = (string) config('services.gemini.api_key');
+        $this->model = trim((string) config('services.gemini.model', 'gemini-3.6-flash'))
+            ?: 'gemini-3.6-flash';
+    }
+
+    /**
+     * Indica si hay una API key configurada para usar Gemini.
+     */
+    public function isConfigured(): bool
+    {
+        return trim($this->apiKey) !== '';
     }
 
     /**
@@ -78,14 +94,17 @@ PROMPT;
      * @param int $total Total de preguntas
      * @param int $correct Correctas
      * @param array $errors Lista de errores [{question, student_answer, feedback}]
-     * @return string Párrafo de feedback general
+     * @return string|null Párrafo de feedback general (null sin API key)
      */
     public function generateGeneralFeedback(
         float $score,
         int $total,
         int $correct,
         array $errors,
-    ): string {
+    ): ?string {
+        if (!$this->isConfigured()) {
+            return null;
+        }
         $errorList = '';
         foreach ($errors as $i => $error) {
             $errorList .= "\n".($i + 1).". Question: \"{$error['question']}\"";
@@ -118,8 +137,50 @@ PROMPT;
             ]],
         ]);
 
-        return $response['candidates'][0]['content']['parts'][0]['text']
-            ?? 'No feedback generated.';
+        return $this->responseText($response, 'general feedback');
+    }
+
+    /**
+     * Genera la respuesta del tutor de chat IA.
+     *
+     * @param array $messages Historial [{role: 'user'|'assistant', content: string}]
+     * @return string|null null si no hay API key configurada
+     */
+    public function chatReply(array $messages): ?string
+    {
+        if (!$this->isConfigured()) {
+            return null;
+        }
+
+        $contents = [];
+        foreach (array_slice($messages, -12) as $message) {
+            $contents[] = [
+                'role' => $message['role'] === 'assistant' ? 'model' : 'user',
+                'parts' => [['text' => $message['content'] ?? '']],
+            ];
+        }
+
+        $response = $this->callGemini([
+            'system_instruction' => [
+                'parts' => [[
+                    'text' => <<<PROMPT
+You are "Agente Inglés", the English tutor of UTBIS university students.
+- Help students practice and understand English (grammar, vocabulary, listening, speaking).
+- Always answer in Spanish, unless the student writes in English (then answer in English).
+- Use the student's CEFR level (A1-C2) to adapt complexity. If unknown, ask them their level first.
+- Correct mistakes kindly and give 1 short example for every rule you explain.
+- Keep answers under 150 words. No emojis.
+PROMPT,
+                ]],
+            ],
+            'contents' => $contents,
+            'generationConfig' => [
+                'temperature' => 0.7,
+                'maxOutputTokens' => 500,
+            ],
+        ]);
+
+        return $this->responseText($response, 'chat reply');
     }
 
     /**
@@ -127,32 +188,38 @@ PROMPT;
      */
     private function callGemini(array $payload): array
     {
-        $url = "{$this->baseUrl}/models/gemini-2.0-flash:generateContent?key={$this->apiKey}";
-
-        $response = Http::timeout(60)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post($url, $payload);
-
-        if ($response->failed()) {
-            Log::error('Gemini API error', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            return [
-                'candidates' => [[
-                    'content' => ['parts' => [[
-                        'text' => json_encode([
-                            'transcription' => '',
-                            'is_correct' => null,
-                            'feedback' => 'Error al comunicarse con la IA. La pregunta no fue evaluada.',
-                        ]),
-                    ]]],
-                ]],
-            ];
+        if (! $this->isConfigured()) {
+            throw new RuntimeException('Gemini API key is not configured.');
         }
 
-        return $response->json();
+        $url = "{$this->baseUrl}/models/{$this->model}:generateContent";
+        $response = null;
+
+        try {
+            $response = Http::connectTimeout(5)
+                ->timeout(20)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'x-goog-api-key' => $this->apiKey,
+                ])
+                ->post($url, $payload);
+            $response->throw();
+        } catch (Throwable $exception) {
+            Log::error('Gemini API error', [
+                'status' => $response?->status(),
+                'body' => $response?->body(),
+                'exception' => $exception::class,
+            ]);
+
+            throw new RuntimeException('Gemini request failed.', 0, $exception);
+        }
+
+        $decoded = $response->json();
+        if (! is_array($decoded)) {
+            throw new UnexpectedValueException('Gemini returned a non-JSON response.');
+        }
+
+        return $decoded;
     }
 
     /**
@@ -160,7 +227,7 @@ PROMPT;
      */
     private function parseSpeakingResponse(array $response): array
     {
-        $text = $response['candidates'][0]['content']['parts'][0]['text'] ?? '{}';
+        $text = $this->responseText($response, 'speaking evaluation');
 
         $text = trim($text);
         if (str_starts_with($text, '```')) {
@@ -168,22 +235,42 @@ PROMPT;
             $text = preg_replace('/\s*```$/', '', $text);
         }
 
-        $decoded = json_decode($text, true);
-
-        if (!is_array($decoded)) {
+        try {
+            $decoded = json_decode($text, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
             Log::warning('Gemini returned invalid JSON for speaking evaluation', ['raw' => $text]);
 
-            return [
-                'transcription' => '',
-                'is_correct' => null,
-                'feedback' => 'Error al procesar la respuesta de la IA.',
-            ];
+            throw new UnexpectedValueException(
+                'Gemini returned invalid JSON for speaking evaluation.',
+                0,
+                $exception,
+            );
+        }
+
+        if (
+            ! is_array($decoded)
+            || ! is_string($decoded['transcription'] ?? null)
+            || ! is_bool($decoded['is_correct'] ?? null)
+            || ! is_string($decoded['feedback'] ?? null)
+        ) {
+            throw new UnexpectedValueException('Gemini returned an incomplete speaking evaluation.');
         }
 
         return [
-            'transcription' => $decoded['transcription'] ?? '',
-            'is_correct' => $decoded['is_correct'] ?? null,
-            'feedback' => $decoded['feedback'] ?? '',
+            'transcription' => $decoded['transcription'],
+            'is_correct' => $decoded['is_correct'],
+            'feedback' => $decoded['feedback'],
         ];
+    }
+
+    private function responseText(array $response, string $purpose): string
+    {
+        $text = $response['candidates'][0]['content']['parts'][0]['text'] ?? null;
+
+        if (! is_string($text) || trim($text) === '') {
+            throw new UnexpectedValueException("Gemini returned no text for {$purpose}.");
+        }
+
+        return trim($text);
     }
 }

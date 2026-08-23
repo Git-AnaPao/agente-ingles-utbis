@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" class="speaking-motion-svg">
+    <style>
+        .bar { transform-origin: bottom; }
+        .b1 { animation: wave1 0.8s ease-in-out infinite alternate; }
+        .b2 { animation: wave2 0.7s ease-in-out infinite alternate 0.1s; }
+        .b3 { animation: wave3 0.9s ease-in-out infinite alternate 0.2s; }
+        .b4 { animation: wave2 0.75s ease-in-out infinite alternate 0.15s; }
+        .b5 { animation: wave1 0.85s ease-in-out infinite alternate 0.05s; }
+        
+        @keyframes wave1 {
+            0% { transform: scaleY(0.25); }
+            100% { transform: scaleY(0.95); }
+        }
+        @keyframes wave2 {
+            0% { transform: scaleY(0.4); }
+            100% { transform: scaleY(1); }
+        }
+        @keyframes wave3 {
+            0% { transform: scaleY(0.15); }
+            100% { transform: scaleY(0.85); }
+        }
+    </style>
+    <rect class="bar b1" x="4" y="8" width="5" height="32" rx="2.5" fill="#10B981" />
+    <rect class="bar b2" x="13" y="8" width="5" height="32" rx="2.5" fill="#06B6D4" />
+    <rect class="bar b3" x="22" y="8" width="5" height="32" rx="2.5" fill="#6366F1" />
+    <rect class="bar b4" x="31" y="8" width="5" height="32" rx="2.5" fill="#8B5CF6" />
+    <rect class="bar b5" x="40" y="8" width="5" height="32" rx="2.5" fill="#10B981" />
+</svg>

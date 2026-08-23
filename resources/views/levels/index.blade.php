@@ -1,233 +1,298 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-display font-bold text-xl text-white leading-tight tracking-tight">
-            🌍 Mapa de Avance — English Journey
-        </h2>
-    </x-slot>
-
+<x-app-layout title="Ruta de Aprendizaje CEFR">
     @php
-        $user = Auth::user();
-        $totalXp = $user->progress()->count();
-        $completedIds = $user->progress()->pluck('lesson_id')->toArray();
-        $totalLessons = 0;
-        foreach ($levels as $lvl) { $totalLessons += $lvl['total']; }
-        $completionPct = $totalLessons > 0 ? round((count($completedIds) / $totalLessons) * 100) : 0;
+        $levelDescriptions = [
+            'A1' => [
+                'name' => 'Principiante · Breakthrough',
+                'description' => 'Comprender y utilizar expresiones cotidianas de uso muy frecuente y frases sencillas.',
+                'color' => '#10B981',
+            ],
+            'A2' => [
+                'name' => 'Elemental · Waystage',
+                'description' => 'Comprender frases y expresiones de uso frecuente relacionadas con áreas de relevancia inmediata.',
+                'color' => '#06B6D4',
+            ],
+            'B1' => [
+                'name' => 'Intermedio · Threshold',
+                'description' => 'Comprender los puntos principales de textos claros si tratan sobre temas que le son conocidos.',
+                'color' => '#3B82F6',
+            ],
+            'B2' => [
+                'name' => 'Intermedio Alto · Vantage',
+                'description' => 'Entender las ideas principales de textos complejos que traten de temas tanto concretos como abstractos.',
+                'color' => '#6366F1',
+            ],
+            'C1' => [
+                'name' => 'Avanzado · Effective Proficiency',
+                'description' => 'Expresarse de forma fluida y espontánea para fines sociales, académicos y profesionales con flexibilidad y precisión.',
+                'color' => '#8B5CF6',
+            ],
+            'C2' => [
+                'name' => 'Maestría · Mastery',
+                'description' => 'Comprender con facilidad prácticamente todo lo que oye o lee y reconstruir información y argumentos con coherencia.',
+                'color' => '#EC4899',
+            ],
+        ];
+
+        $skillMeta = [
+            'reading' => [
+                'label' => 'Reading',
+                'icon' => 'book-open',
+                'pill_class' => 'ef-skill-reading',
+            ],
+            'listening' => [
+                'label' => 'Listening',
+                'icon' => 'headphones',
+                'pill_class' => 'ef-skill-listening',
+            ],
+            'speaking' => [
+                'label' => 'Speaking',
+                'icon' => 'mic',
+                'pill_class' => 'ef-skill-speaking',
+            ],
+        ];
+        $allSubLevels = collect($levels)->pluck('sub_levels')->flatten(1);
+        $totalNodes = $allSubLevels->count();
+        $completedNodes = $allSubLevels->where('completed', true)->count();
+        $completionPct = $totalNodes > 0 ? (int) round(($completedNodes / $totalNodes) * 100) : 0;
+        $totalXp = $gamification['total_xp'] ?? (auth()->user()->xp ?? 0);
     @endphp
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-            {{-- Stats bar gamificada --}}
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                <div class="solid-card p-4 text-center animate-fade-up">
-                    <div class="text-2xl font-bold gradient-text font-display">{{ $totalXp }}</div>
-                    <div class="text-xs font-medium mt-0.5" style="color: var(--color-text-secondary);">XP</div>
-                </div>
-                <div class="solid-card p-4 text-center animate-fade-up" style="animation-delay: 0.05s;">
-                    <div class="text-2xl font-bold font-display" style="color: var(--color-primary);">{{ count($completedIds) }}</div>
-                    <div class="text-xs font-medium mt-0.5" style="color: var(--color-text-secondary);">Completadas</div>
-                </div>
-                <div class="solid-card p-4 text-center animate-fade-up" style="animation-delay: 0.1s;">
-                    <div class="text-2xl font-bold font-display" style="color: var(--color-accent);">{{ count($levels) }}</div>
-                    <div class="text-xs font-medium mt-0.5" style="color: var(--color-text-secondary);">Niveles</div>
-                </div>
-                <div class="solid-card p-4 text-center animate-fade-up" style="animation-delay: 0.15s;">
-                    <div class="text-2xl font-bold font-display" style="color: var(--color-purple);">{{ $totalLessons }}</div>
-                    <div class="text-xs font-medium mt-0.5" style="color: var(--color-text-secondary);">Lecciones</div>
-                </div>
-            </div>
-
-            {{-- Barra de progreso global --}}
-            <div class="solid-card p-5 mb-8 animate-fade-up">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-semibold" style="color: var(--color-text);">Progreso global</span>
-                    <span class="text-xs font-bold gradient-text">{{ $completionPct }}%</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-bar-fill" style="width: {{ $completionPct }}%;"></div>
-                </div>
-            </div>
-
-            {{-- Horizontal path container --}}
-            <div class="relative animate-fade-up">
-                <div class="sm:hidden absolute top-0 right-0 h-full w-10 pointer-events-none z-10 flex items-center justify-end"
-                     style="background: linear-gradient(to right, transparent, var(--color-bg));">
-                    <span class="text-[10px] font-semibold pr-1" style="color: var(--color-text-secondary);">→</span>
-                </div>
-                <div class="overflow-x-auto pb-6">
-                <div class="flex items-start gap-0 min-w-max px-2">
-
-                    @php
-                        $allCompleted = true;
-                    @endphp
-
-                    @foreach ($levels as $levelIndex => $level)
-                        @php
-                            $levelLessons = $level['lessons'];
-                            $levelLessonIds = $levelLessons->pluck('lesson_id')->toArray();
-                            $doneInLevel = count(array_intersect($levelLessonIds, $completedIds));
-
-                            $levelCompleted = $level['total'] > 0 && $doneInLevel >= $level['total'];
-                            $levelStarted = $doneInLevel > 0;
-                            $isCurrent = $allCompleted && !$levelCompleted;
-                            $levelStatus = $levelCompleted ? 'completed' : ($levelStarted ? 'started' : ($allCompleted ? 'current' : 'locked'));
-
-                            if ($levelCompleted) {
-                                // keep allCompleted true
-                            } elseif ($levelStarted && !$levelCompleted) {
-                                $allCompleted = false;
-                            } elseif (!$levelStarted) {
-                                // future levels locked
-                            }
-                        @endphp
-
-                        {{-- Level station --}}
-                        <div class="flex flex-col items-center relative mx-3 first:ml-0 last:mr-0">
-
-                            {{-- Level node --}}
-                            <div class="relative">
-                                <div class="relative group">
-                                    <div class="w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-lg transition-all duration-500 hover:scale-105
-                                        @if ($levelStatus === 'completed')
-                                            shadow-md animate-glow"
-                                            style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); border: 4px solid var(--color-warning);"
-                                        @elseif ($levelStatus === 'current' || $levelStatus === 'started')
-                                            shadow-lg"
-                                            style="background: linear-gradient(135deg, var(--color-accent), var(--color-warning)); border: 4px solid var(--color-card);"
-                                        @else
-                                            shadow-sm"
-                                            style="background: #D1D5DB; border: 4px solid #9CA3AF;"
-                                        @endif
-                                    >
-                                        @if ($levelStatus === 'locked')
-                                            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                        @else
-                                            <span class="text-3xl font-bold" style="color: white;">{{ $level['cefr'] }}</span>
-                                        @endif
-                                    </div>
-
-                                    @if ($levelStatus === 'current' || $levelStatus === 'started')
-                                        <div class="absolute inset-0 w-24 h-24 rounded-full animate-ping opacity-20"
-                                             style="background: var(--color-accent);"></div>
-                                    @endif
-
-                                    @if ($levelStatus === 'completed')
-                                        <div class="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md animate-bounce-in"
-                                             style="background: var(--color-warning);">
-                                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                        </div>
-                                    @endif
-                                </div>
-
-                                {{-- Level label --}}
-                                <div class="text-center mt-3 w-28">
-                                    <h3 class="font-display font-bold text-sm truncate" style="color: var(--color-text);">
-                                        {{ $level['cefr'] }}
-                                    </h3>
-                                    <span class="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                                          @if ($levelStatus === 'completed')
-                                              style="background: color-mix(in srgb, var(--color-primary) 15%, transparent); color: var(--color-primary);"
-                                          @elseif ($levelStatus === 'locked')
-                                              style="background: #e5e7eb; color: #9CA3AF;"
-                                          @else
-                                              style="background: #fff3cd; color: #856404;"
-                                          @endif
-                                    >
-                                        @if ($levelStatus === 'completed') ✓
-                                        @elseif ($levelStatus === 'locked') 🔒
-                                        @else 🎯
-                                        @endif
-                                        {{ $doneInLevel }}/{{ $level['total'] }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {{-- Sub-level lessons --}}
-                            <div class="flex items-center gap-2.5 mt-4">
-                                @foreach ($levelLessons as $subIndex => $lesson)
-                                    @php
-                                        $subCompleted = in_array($lesson->lesson_id, $completedIds);
-                                        $subLocked = $levelStatus === 'locked' && !$subCompleted;
-                                    @endphp
-
-                                    <div class="relative flex flex-col items-center">
-                                        <a href="{{ $subCompleted || (!$subLocked && $levelStatus !== 'locked') ? route('lessons.learn', $lesson) : '#' }}"
-                                           class="block w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shadow-sm transition-all duration-300 hover:scale-110 hover:-translate-y-1
-                                                @if ($subCompleted)
-                                                    shadow-sm cursor-pointer"
-                                                    style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); color: white; border: 3px solid var(--color-warning);"
-                                                @elseif (!$subLocked && $levelStatus !== 'locked')
-                                                    shadow-sm cursor-pointer"
-                                                    style="background: var(--color-card); color: var(--color-primary); border: 3px solid var(--color-accent);"
-                                                @else
-                                                    shadow-sm cursor-not-allowed"
-                                                    style="background: #E5E7EB; color: #9CA3AF; border: 3px solid #D1D5DB;"
-                                                @endif
-                                        >
-                                            @if ($subCompleted)
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            @elseif ($subLocked)
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                            @else
-                                                <span class="text-[10px] font-bold">{{ $subIndex + 1 }}</span>
-                                            @endif
-                                        </a>
-
-                                        <span class="text-center mt-1.5 leading-tight max-14">
-                                            <span class="block text-[9px] font-semibold truncate"
-                                                  style="color: @if ($subCompleted) var(--color-primary) @elseif ($subLocked) #9CA3AF @else var(--color-text-secondary) @endif"
-                                            >{{ $lesson->lesson_prompt_payload['topic'] ?? 'Lección' }}</span>
-                                        </span>
-                                    </div>
-
-                                    @if (!$loop->last)
-                                        <div class="w-3 h-0.5 rounded-full" style="background: var(--color-border); margin-top: -1.5rem;"></div>
-                                    @endif
-                                @endforeach
-                            </div>
+    <div class="py-6 sm:py-8">
+        <div class="mx-auto max-w-5xl space-y-8 px-4 sm:px-6 lg:px-8">
+            
+            {{-- ══════════════════════════════════════════════════════════
+                 HÉROE DEL MAPA CEFR (EF ENGLISH + DUOLINGO STATS)
+                 ══════════════════════════════════════════════════════════ --}}
+            <section class="ef-unit-card border-2 relative overflow-hidden animate-fade-up"
+                     style="border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="ef-cefr-badge">Ruta CEFR Internacional</span>
+                            <span class="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">UTBIS English Framework</span>
                         </div>
-
-                        {{-- Connector between levels --}}
-                        @if (!$loop->last)
-                            <div class="flex items-center self-center mx-2" style="margin-top: -2.5rem;">
-                                <svg width="36" height="8" viewBox="0 0 36 8" fill="none"
-                                     style="stroke: {{ $levelStatus === 'locked' ? '#D1D5DB' : 'var(--color-primary)' }};">
-                                    <path d="M0 4H32" stroke-width="2" stroke-dasharray="4 3"/>
-                                    <polygon points="32,1 36,4 32,7" fill="{{ $levelStatus === 'locked' ? '#D1D5DB' : 'var(--color-primary)' }}"/>
-                                </svg>
-                            </div>
-                        @endif
-                    @endforeach
-
-                </div>
-                </div>
-            </div>
-
-            {{-- Trophy footer --}}
-            <div class="flex justify-center mt-4 animate-fade-up">
-                <div class="text-center solid-card p-6 inline-flex items-center gap-4">
-                    <span class="text-4xl">🏆</span>
-                    <div class="text-start">
-                        <p class="text-sm font-bold" style="color: var(--color-text);">
-                            {{ count($completedIds) >= $totalLessons ? '¡Completaste todo el curso! 🎉' : '¡Sigue así! Cada lección cuenta.' }}
-                        </p>
-                        <p class="text-xs mt-0.5" style="color: var(--color-text-secondary);">
-                            {{ count($completedIds) }}/{{ $totalLessons }} lecciones completadas
+                        <h1 class="font-display font-black text-2xl sm:text-4xl tracking-tight" style="color: var(--color-text);">
+                            Tu Camino de Aprendizaje
+                        </h1>
+                        <p class="max-w-2xl text-xs sm:text-sm leading-relaxed" style="color: var(--color-text-secondary);">
+                            Punto de entrada asignado: 
+                            <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                                Nivel {{ $placement?->result_level ?? 'A1' }}
+                            </span>. 
+                            Avanza subnivel a subnivel dominando lectura, comprensión auditiva y conversación con IA.
                         </p>
                     </div>
+
+                    {{-- Mini Resumen Gamificado Duolingo --}}
+                    <div class="grid grid-cols-3 gap-2.5 shrink-0 min-w-[260px] text-center">
+                        <div class="p-3 rounded-2xl border" style="background: var(--color-bg); border-color: var(--color-border);">
+                            <span class="block font-display font-black text-lg text-amber-500">{{ number_format($totalXp) }}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-text-secondary);">XP Total</span>
+                        </div>
+                        <div class="p-3 rounded-2xl border" style="background: var(--color-bg); border-color: var(--color-border);">
+                            <span class="font-display font-black text-lg text-orange-500 flex items-center justify-center gap-1">
+                                <span>{{ $gamification['current_streak'] ?? 0 }}</span>
+                                <x-icon name="flame" class="w-4 h-4 text-orange-500 animate-pulse" />
+                            </span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-text-secondary);">Racha</span>
+                        </div>
+                        <div class="p-3 rounded-2xl border" style="background: var(--color-bg); border-color: var(--color-border);">
+                            <span class="block font-display font-black text-lg text-emerald-500">{{ $completedNodes }}/{{ $totalNodes }}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--color-text-secondary);">Nodos</span>
+                        </div>
+                    </div>
                 </div>
+
+                <div class="mt-6 pt-6 border-t flex items-center justify-between gap-4" style="border-color: var(--color-border);">
+                    <div class="flex-1">
+                        <div class="flex justify-between text-xs font-bold mb-1.5">
+                            <span style="color: var(--color-text);">Progreso Total de la Carrera</span>
+                            <span class="font-mono text-emerald-600 dark:text-emerald-400">{{ $completionPct }}%</span>
+                        </div>
+                        <div class="progress-bar h-3" role="progressbar" aria-valuenow="{{ $completionPct }}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar-fill" style="width: {{ $completionPct }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {{-- ══════════════════════════════════════════════════════════
+                 LISTA DE UNIDADES CEFR & NODOS DE LECCIÓN DUOLINGO
+                 ══════════════════════════════════════════════════════════ --}}
+            <div class="space-y-10">
+                @foreach ($levels as $level)
+                    @php
+                        $isLocked = $level['status'] === 'locked';
+                        $levelPct = $level['total'] > 0 ? (int) round(($level['completed'] / $level['total']) * 100) : 0;
+                        $cefrMeta = $levelDescriptions[$level['cefr']] ?? [
+                            'name' => 'Nivel '.$level['cefr'],
+                            'description' => 'Módulo formativo de inglés.',
+                            'color' => '#10B981',
+                        ];
+                    @endphp
+
+                    <section id="level-{{ $level['cefr'] }}" 
+                             class="ef-unit-card border-2 {{ $level['placement_entry'] ? 'ring-2 ring-emerald-500/40 shadow-glow' : '' }}"
+                             @if ($isLocked) style="opacity: 0.75;" @endif>
+                        
+                        {{-- Cabecera de la Unidad EF English --}}
+                        <header class="ef-unit-header">
+                            <div class="flex items-center gap-4 min-w-0">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl font-display font-black text-xl font-mono shrink-0 border-2 shadow-sm"
+                                     style="background: color-mix(in srgb, var(--color-primary) 12%, var(--color-card)); border-color: var(--color-primary); color: var(--color-primary);">
+                                    {{ $level['cefr'] }}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h2 class="font-display text-lg sm:text-xl font-black" style="color: var(--color-text);">
+                                            Nivel {{ $level['cefr'] }} · {{ $cefrMeta['name'] }}
+                                        </h2>
+                                        @if ($level['placement_entry'])
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                                🎯 Punto de entrada asignado
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <p class="text-xs mt-1 leading-relaxed" style="color: var(--color-text-secondary);">
+                                        {{ $cefrMeta['description'] }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 shrink-0">
+                                <div class="text-right">
+                                    <span class="text-xs font-mono font-black block" style="color: var(--color-text);">{{ $level['completed'] }}/{{ $level['total'] }} Hitos</span>
+                                    <span class="text-[10px] uppercase font-bold" style="color: var(--color-text-secondary);">{{ $levelPct }}% Dominado</span>
+                                </div>
+                                <div class="w-20 sm:w-28 progress-bar h-2.5">
+                                    <div class="progress-bar-fill" style="width: {{ $levelPct }}%;"></div>
+                                </div>
+                            </div>
+                        </header>
+
+                        {{-- Lista de Nodos / Subniveles --}}
+                        @if (empty($level['sub_levels']))
+                            <div class="py-12 text-center text-xs sm:text-sm" style="color: var(--color-text-secondary);">
+                                📚 Contenido formativo en preparación para este nivel.
+                            </div>
+                        @else
+                            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                @foreach ($level['sub_levels'] as $node)
+                                    @php
+                                        $lesson = $node['lesson'];
+                                        $topic = $node['topics'][0] ?? ($lesson->lesson_prompt_payload['topic'] ?? ('Unidad '.$level['cefr'].'.'.$node['sub_level']));
+                                    @endphp
+
+                                    <article class="solid-card p-5 border flex flex-col justify-between transition-all duration-300 {{ $node['completed'] ? 'border-emerald-500/30 bg-emerald-500/5' : '' }} {{ $isLocked ? 'opacity-60' : 'hover:-translate-y-1 hover:shadow-md' }}"
+                                             style="border-color: var(--color-card-border);">
+                                        <div>
+                                            {{-- Indicador de Subnivel --}}
+                                            <div class="flex items-center justify-between gap-2 mb-3">
+                                                <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold"
+                                                      style="background: var(--color-bg); color: var(--color-text-secondary);">
+                                                    Subnivel {{ $node['sub_level'] }}
+                                                </span>
+
+                                                {{-- Estado del Nodo Duolingo --}}
+                                                @if ($node['completed'])
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                                        ✓ Dominado
+                                                    </span>
+                                                @elseif ($isLocked)
+                                                    <span class="text-xs text-slate-400 font-bold flex items-center gap-1">
+                                                        🔒 Bloqueado
+                                                    </span>
+                                                @elseif ($node['attempted'])
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                        En progreso
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                        Disponible
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            {{-- Título y Tema --}}
+                                            <div class="mb-4">
+                                                <span class="text-[10px] font-bold uppercase tracking-wider block" style="color: var(--color-text-secondary);">
+                                                    {{ $node['completed'] ? 'Hito Académico' : 'Objetivo de Estudio' }}
+                                                </span>
+                                                <h3 class="font-display font-extrabold text-sm sm:text-base mt-0.5 line-clamp-2" style="color: var(--color-text);" title="{{ $topic }}">
+                                                    {{ $topic }}
+                                                </h3>
+                                            </div>
+
+                                            {{-- Pestañas de Habilidades EF English con Iconos Vectoriales --}}
+                                            <div class="space-y-1.5 mb-4">
+                                                @foreach ($skillMeta as $skill => $meta)
+                                                    @php $state = $node['skills'][$skill]; @endphp
+                                                    <div class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold border"
+                                                         style="background: var(--color-card); border-color: var(--color-border);">
+                                                        <span class="flex items-center gap-2">
+                                                            <x-icon :name="$meta['icon']" class="w-3.5 h-3.5 text-slate-400" />
+                                                            <span style="color: var(--color-text);">{{ $meta['label'] }}</span>
+                                                        </span>
+                                                        @if ($state['mastered'])
+                                                            <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Listo</span>
+                                                        @elseif ($isLocked || ! $state['available'])
+                                                            <span class="text-slate-400 text-[11px]">{{ $isLocked ? 'Bloqueado' : 'Opcional' }}</span>
+                                                        @else
+                                                            <span class="text-amber-500 font-bold text-[11px]">Pendiente</span>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        {{-- Botón de Acción Táctil 3D Duolingo --}}
+                                        <div class="mt-2 pt-3 border-t" style="border-color: var(--color-border);">
+                                            @if ($isLocked)
+                                                <button type="button" disabled class="btn-duo btn-duo-outline w-full text-xs py-2 opacity-50">
+                                                    🔒 Bloqueado
+                                                </button>
+                                            @elseif ($lesson)
+                                                @php
+                                                    $activeSkill = collect(['reading', 'listening', 'speaking'])->first(fn ($s) => ! in_array($s, $node['mastered_skills'], true)) ?? 'reading';
+                                                @endphp
+                                                <a href="{{ route('lessons.learn', ['lesson' => $lesson, 'tab' => $activeSkill]) }}"
+                                                   class="btn-duo {{ $node['completed'] ? 'btn-duo-outline' : 'btn-duo-green' }} w-full text-xs py-2.5">
+                                                    <span>{{ $node['completed'] ? 'Repasar Lección' : 'Comenzar Lección' }}</span>
+                                                    <span>→</span>
+                                                </a>
+                                            @endif
+                                        </div>
+                                    </article>
+                                @endforeach
+                            </div>
+
+                            {{-- Hito Final de la Unidad (Cofre / Certificado) --}}
+                            <div class="mt-6 p-4 rounded-2xl border flex items-center justify-between gap-4"
+                                 style="background: color-mix(in srgb, var(--color-primary) 6%, var(--color-card)); border-color: color-mix(in srgb, var(--color-primary) 25%, transparent);">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-2xl flex items-center justify-center bg-amber-500/10 text-amber-500">
+                                        <x-icon name="trophy" class="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 class="font-display font-bold text-xs sm:text-sm" style="color: var(--color-text);">
+                                            Hito de Certificación: Nivel {{ $level['cefr'] }}
+                                        </h4>
+                                        <p class="text-[11px]" style="color: var(--color-text-secondary);">
+                                            {{ $levelPct === 100 ? '¡Unidad dominada con éxito!' : 'Completa todos los subniveles para desbloquear la maestría de este nivel.' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-mono font-extrabold px-3 py-1.5 rounded-xl border {{ $levelPct === 100 ? 'bg-emerald-500 text-white' : 'bg-card text-slate-400' }}"
+                                      style="border-color: var(--color-border);">
+                                    {{ $levelPct === 100 ? '✓ Nivel Superado' : $levelPct . '%' }}
+                                </span>
+                            </div>
+                        @endif
+
+                    </section>
+                @endforeach
             </div>
 
         </div>
     </div>
-
-    {{-- Success toast --}}
-    @if (session('success'))
-        <div class="xp-toast">
-            <span class="flex items-center gap-2">
-                <span>✅</span>
-                <span>{{ session('success') }}</span>
-            </span>
-        </div>
-    @endif
 </x-app-layout>

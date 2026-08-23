@@ -12,8 +12,11 @@ class Resource extends Model
     use HasUuids;
 
     protected $table = 'resources';
+
     protected $primaryKey = 'resource_id';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -31,6 +34,6 @@ class Resource extends Model
 
     public function questions(): HasMany
     {
-        return $this->hasMany(Question::class, 'questionnaire_id');
+        return $this->hasMany(Question::class, 'questionnaire_id', 'questionnaire_id');
     }
 }

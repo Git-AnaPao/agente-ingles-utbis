@@ -20,6 +20,7 @@ class QuestionOption extends Model
         'question_id',
         'option_text',
         'is_correct',
+        'option_order',
     ];
 
     protected function casts(): array

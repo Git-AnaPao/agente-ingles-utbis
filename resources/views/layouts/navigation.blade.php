@@ -1,110 +1,295 @@
-<nav x-data="{ open: false }" class="border-b" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); border-color: rgba(255,255,255,0.06);">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+@php
+    $currentUser = auth()->user();
+    $roles = $currentUser?->roles?->pluck('role_name')->all() ?? [];
+    $isStudent = in_array('student', $roles, true);
+    $isAdmin = in_array('admin', $roles, true);
+    $isProfessor = in_array('professor', $roles, true);
 
-            {{-- Logo + enlaces --}}
-            <div class="flex items-center">
-                <a href="{{ route('dashboard') }}" class="shrink-0 flex items-center gap-2.5 me-8 group"
-                   aria-label="Inicio Agente Inglés">
-                    <span class="text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" role="img" aria-label="Búho tutor">🦉</span>
-                    <span class="font-display font-bold text-white text-sm hidden sm:block tracking-tight">
-                        Agente Inglés
-                    </span>
+    $displayName = trim(implode(' ', array_filter([
+        $currentUser?->user_name,
+        $currentUser?->user_last_name,
+    ])));
+
+    $initial = strtoupper(substr($currentUser?->user_name ?? 'U', 0, 1));
+    $homeRoute = $isAdmin
+        ? route('admin.dashboard')
+        : ($isProfessor ? route('professor.dashboard') : route('dashboard'));
+
+    // Datos de gamificación en vivo para el usuario
+    $gamificationService = app(\App\Services\GamificationService::class);
+    $gamification = $currentUser ? $gamificationService->snapshot($currentUser) : [];
+    $streak = $gamification['current_streak'] ?? 0;
+    $totalXp = $gamification['total_xp'] ?? 0;
+    $levelInfo = $gamification['level'] ?? ['level' => 1];
+    
+    // Nivel CEFR
+    $placement = $currentUser ? \App\Models\StudentProgress::latestPlacementFor($currentUser) : null;
+    $cefrLevel = $placement?->result_level ?? 'A1';
+
+    $dashboardActive = request()->routeIs('dashboard');
+    $learningActive = request()->routeIs('levels.*') || request()->routeIs('lessons.*');
+    $listeningActive = request()->routeIs('listening.*');
+    $chatActive = request()->routeIs('chat.*');
+    $placementActive = request()->routeIs('placement.*');
+    $professorActive = request()->routeIs('professor.*');
+    $adminActive = request()->routeIs('admin.dashboard');
+@endphp
+
+{{-- ═════════════════════════════════════════════════════════════════
+     1. SIDEBAR IZQUIERDO FIJO (DESKTOP ESTILO DUOLINGO)
+     ═════════════════════════════════════════════════════════════════ --}}
+<aside class="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 z-50 border-r transition-colors duration-300"
+       style="border-color: var(--color-border); background: var(--color-card);"
+       aria-label="Navegación principal">
+    
+    {{-- Marca & Logotipo --}}
+    <div class="h-20 flex items-center px-6 border-b" style="border-color: var(--color-border);">
+        <a href="{{ $homeRoute }}" class="flex items-center gap-3 group">
+            <div class="w-11 h-11 rounded-2xl flex items-center justify-center p-1.5 transition-transform duration-200 group-hover:scale-105"
+                 style="background: color-mix(in srgb, var(--color-primary) 12%, var(--color-card));">
+                <img src="{{ asset('img/buho.png') }}" alt="Búho UTBIS" class="w-full h-full object-contain">
+            </div>
+            <div>
+                <span class="font-display font-black text-lg tracking-tight gradient-text block leading-none">
+                    Agente Inglés
+                </span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    UTBIS · AI Campus
+                </span>
+            </div>
+        </a>
+    </div>
+
+    {{-- Enlaces Principales de Navegación Estilo Duolingo 3D --}}
+    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto no-scrollbar" aria-label="Secciones de aprendizaje">
+        @if ($isStudent)
+            {{-- Inicio / Dashboard --}}
+            <a href="{{ route('dashboard') }}"
+               class="duo-sidebar-link {{ $dashboardActive ? 'is-active' : '' }}"
+               @if ($dashboardActive) aria-current="page" @endif>
+                <x-icon name="home" class="w-5 h-5 shrink-0" />
+                <span>Inicio</span>
+            </a>
+
+            {{-- Ruta de Aprendizaje CEFR --}}
+            <a href="{{ route('levels.index') }}"
+               class="duo-sidebar-link {{ $learningActive ? 'is-active' : '' }}"
+               @if ($learningActive) aria-current="page" @endif>
+                <x-icon name="map" class="w-5 h-5 shrink-0" />
+                <span>Ruta CEFR</span>
+            </a>
+
+            {{-- Listening Lab --}}
+            <a href="{{ route('listening.index') }}"
+               class="duo-sidebar-link {{ $listeningActive ? 'is-active' : '' }}"
+               @if ($listeningActive) aria-current="page" @endif>
+                <x-icon name="headphones" class="w-5 h-5 shrink-0" />
+                <span>Listening Lab</span>
+            </a>
+
+            {{-- Tutor IA Gemini --}}
+            <a href="{{ route('chat.index') }}"
+               class="duo-sidebar-link {{ $chatActive ? 'is-active' : '' }}"
+               @if ($chatActive) aria-current="page" @endif>
+                <x-icon name="bot" class="w-5 h-5 shrink-0 text-indigo-500" />
+                <span>Tutor IA</span>
+            </a>
+
+            {{-- Test de Diagnóstico --}}
+            <a href="{{ route('placement.index') }}"
+               class="duo-sidebar-link {{ $placementActive ? 'is-active' : '' }}"
+               @if ($placementActive) aria-current="page" @endif>
+                <x-icon name="target" class="w-5 h-5 shrink-0" />
+                <span>Diagnóstico</span>
+            </a>
+        @else
+            {{-- Panel de Profesor --}}
+            <a href="{{ route('professor.dashboard') }}"
+               class="duo-sidebar-link {{ $professorActive ? 'is-active' : '' }}"
+               @if ($professorActive) aria-current="page" @endif>
+                <x-icon name="chart-bar" class="w-5 h-5 shrink-0 text-indigo-500" />
+                <span>Seguimiento</span>
+            </a>
+
+            @if ($isAdmin)
+                {{-- Panel de Administración --}}
+                <a href="{{ route('admin.dashboard') }}"
+                   class="duo-sidebar-link {{ $adminActive ? 'is-active' : '' }}"
+                   @if ($adminActive) aria-current="page" @endif>
+                    <x-icon name="settings" class="w-5 h-5 shrink-0 text-purple-500" />
+                    <span>Consola Admin</span>
                 </a>
+                <a href="{{ route('admin.users') }}"
+                   class="duo-sidebar-link {{ request()->routeIs('admin.users*') ? 'is-active' : '' }}">
+                    <x-icon name="user" class="w-5 h-5 shrink-0 text-sky-500" />
+                    <span>Usuarios</span>
+                </a>
+            @endif
+        @endif
 
-                {{-- Desktop nav --}}
-                <div class="hidden space-x-0.5 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 me-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                        {{ __('Inicio') }}
-                    </x-nav-link>
+        {{-- Separador --}}
+        <div class="pt-4 border-t my-2" style="border-color: var(--color-border);">
+            <a href="{{ route('profile.edit') }}"
+               class="duo-sidebar-link {{ request()->routeIs('profile.*') ? 'is-active' : '' }}">
+                <x-icon name="user" class="w-5 h-5 shrink-0" />
+                <span>Mi Perfil</span>
+            </a>
+        </div>
+    </nav>
 
-                    <x-nav-link :href="route('dashboard')" :active="false">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 me-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                        </svg>
-                        {{ __('Chat IA') }}
-                    </x-nav-link>
-
-                    <x-nav-link :href="route('levels.index')" :active="request()->routeIs('levels.*')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 me-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 13l5.447-2.724A1 1 0 0021 16.382V5.618a1 1 0 00-.553-.894L15 4m0 0V4m0 0V4" />
-                        </svg>
-                        {{ __('Avance') }}
-                    </x-nav-link>
-
-                    @if (Auth::user()->isProfessor() || Auth::user()->isAdmin())
-                        <x-nav-link :href="route('professor.dashboard')" :active="request()->routeIs('professor.*')">
-                            📚 {{ __('Profesor') }}
-                        </x-nav-link>
-                    @endif
-
-                    @if (Auth::user()->isAdmin())
-                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
-                            ⚙️ {{ __('Admin') }}
-                        </x-nav-link>
-                    @endif
+    {{-- Pie del Sidebar: Usuario, Tema & Salida --}}
+    <div class="p-4 border-t space-y-3" style="border-color: var(--color-border); background: var(--color-bg);">
+        {{-- Tarjeta de Perfil Rápida --}}
+        <div class="flex items-center justify-between gap-3 p-2.5 rounded-2xl border"
+             style="background: var(--color-card); border-color: var(--color-border);">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-display font-extrabold text-xs text-white shadow-sm"
+                      style="background: linear-gradient(135deg, #10B981, #059669);" aria-hidden="true">
+                    {{ $initial }}
+                </span>
+                <div class="min-w-0">
+                    <p class="text-xs font-display font-bold truncate" style="color: var(--color-text);">{{ $displayName }}</p>
+                    <p class="text-[10px] font-mono truncate" style="color: var(--color-text-secondary);">{{ $currentUser->user_email }}</p>
                 </div>
             </div>
 
-            {{-- Dropdown usuario --}}
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="56">
+            {{-- Botón de Tema --}}
+            <button type="button"
+                    @click="toggleTheme()"
+                    class="w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-150 hover:border-emerald-500 shrink-0"
+                    style="background: var(--color-bg); border-color: var(--color-border);"
+                    :title="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'">
+                <template x-if="theme === 'dark'">
+                    <x-icon name="sun" class="w-4 h-4 text-amber-400" />
+                </template>
+                <template x-if="theme !== 'dark'">
+                    <x-icon name="moon" class="w-4 h-4 text-indigo-500" />
+                </template>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('logout') }}" data-clear-chat-history>
+            @csrf
+            <button type="submit"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                <span>Cerrar sesión</span>
+            </button>
+        </form>
+    </div>
+</aside>
+
+{{-- ═════════════════════════════════════════════════════════════════
+     2. BARRA SUPERIOR STICKY DE GAMIFICACIÓN & ESTADÍSTICAS
+     ═════════════════════════════════════════════════════════════════ --}}
+<header class="sticky top-0 z-40 border-b backdrop-blur-xl transition-colors duration-300 lg:pl-64"
+        style="border-color: var(--color-glass-border); background: var(--color-glass);"
+        aria-label="Barra superior de estado y progreso">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16 gap-3">
+            
+            {{-- Identidad Mobile (Logo visible solo en móviles) --}}
+            <div class="flex items-center gap-3 lg:hidden min-w-0">
+                <a href="{{ $homeRoute }}" class="flex items-center gap-2.5">
+                    <img src="{{ asset('img/buho.png') }}" alt="Búho" class="w-8 h-8 object-contain">
+                    <span class="font-display font-black text-sm gradient-text truncate">Agente Inglés</span>
+                </a>
+            </div>
+
+            {{-- Título de Contexto Desktop --}}
+            <div class="hidden lg:flex items-center gap-2 text-xs font-semibold" style="color: var(--color-text-secondary);">
+                <span>Universidad Tecnológica de Puebla</span>
+                <span>·</span>
+                <span class="font-mono text-emerald-600 dark:text-emerald-400 font-bold">UTBIS English Campus</span>
+            </div>
+
+            {{-- Estadísticas Gamificadas Duolingo + EF English --}}
+            <div class="flex items-center gap-2 sm:gap-3">
+                @if ($isStudent)
+                    {{-- Racha Diaria 🔥 --}}
+                    <div class="gamification-pill border-orange-500/30 text-orange-600 dark:text-orange-400"
+                         title="Racha de estudio: {{ $streak }} días consecutivos">
+                        <x-icon name="flame" class="w-4 h-4 text-orange-500 animate-pulse" />
+                        <span class="font-mono font-black text-xs sm:text-sm">{{ $streak }}</span>
+                        <span class="hidden sm:inline text-[11px] font-bold uppercase">días</span>
+                    </div>
+
+                    {{-- XP Total & Nivel ⚡ --}}
+                    <div class="gamification-pill border-amber-500/30 text-amber-600 dark:text-amber-400"
+                         title="Nivel {{ $levelInfo['level'] }} · {{ number_format($totalXp) }} XP acumulados">
+                        <x-icon name="gem" class="w-4 h-4 text-amber-500" />
+                        <span class="font-mono font-black text-xs sm:text-sm">{{ number_format($totalXp) }}</span>
+                        <span class="hidden sm:inline text-[11px] font-bold uppercase">XP</span>
+                    </div>
+
+                    {{-- Nivel CEFR Asignado 🎯 --}}
+                    <div class="gamification-pill border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hidden sm:inline-flex"
+                         title="Nivel CEFR de entrada: {{ $cefrLevel }}">
+                        <x-icon name="target" class="w-4 h-4 text-emerald-500" />
+                        <span class="font-mono font-black text-xs sm:text-sm">Nivel {{ $cefrLevel }}</span>
+                    </div>
+                @else
+                    <div class="gamification-pill border-indigo-500/30 text-indigo-600 dark:text-indigo-400">
+                        <x-icon name="user" class="w-4 h-4 text-indigo-500" />
+                        <span class="font-bold text-xs">{{ $isAdmin ? 'Administrador' : 'Profesor' }}</span>
+                    </div>
+                @endif
+
+                {{-- Selector de Modo Claro/Oscuro --}}
+                <button type="button"
+                        @click="toggleTheme()"
+                        class="w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-200 border hover:border-emerald-500/50"
+                        style="background: var(--color-card); border-color: var(--color-border); color: var(--color-text);"
+                        :title="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'">
+                    <template x-if="theme === 'dark'">
+                        <x-icon name="sun" class="w-4 h-4 text-amber-400" />
+                    </template>
+                    <template x-if="theme !== 'dark'">
+                        <x-icon name="moon" class="w-4 h-4 text-indigo-500" />
+                    </template>
+                </button>
+
+                {{-- Dropdown de Usuario --}}
+                <x-dropdown id="top-user-menu" align="right" width="56">
                     <x-slot name="trigger">
-                        <button class="inline-flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-white/85 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/25 transition duration-200"
+                        <button type="button"
+                                class="inline-flex items-center gap-2 p-1 rounded-2xl border transition hover:border-emerald-500"
+                                style="background: var(--color-card); border-color: var(--color-border);"
                                 aria-label="Menú de usuario">
-                            <span class="flex h-8 w-8 items-center justify-center rounded-full font-bold text-xs shadow-inner"
-                                  style="background: linear-gradient(135deg, var(--color-accent), var(--color-warning)); color: white;">
-                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                            <span class="flex h-8 w-8 items-center justify-center rounded-xl font-bold text-xs text-white shadow-sm"
+                                  style="background: linear-gradient(135deg, #10B981, #059669);">
+                                {{ $initial }}
                             </span>
-                            <span class="hidden lg:inline">{{ Auth::user()->name }}</span>
-                            <svg class="h-4 w-4 text-white/60" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
                         </button>
                     </x-slot>
 
                     <x-slot name="content">
-                        <div class="px-4 py-3 border-b" style="border-color: var(--color-border);">
-                            <p class="text-sm font-semibold" style="color: var(--color-text);">{{ Auth::user()->name }}</p>
-                            <p class="text-xs truncate" style="color: var(--color-text-secondary);">{{ Auth::user()->email }}</p>
+                        <div class="px-4 py-3 border-b min-w-0" style="border-color: var(--color-border);">
+                            <p class="text-sm font-bold truncate" style="color: var(--color-text);">{{ $displayName }}</p>
+                            <p class="text-xs truncate font-mono mt-0.5" style="color: var(--color-text-secondary);">{{ $currentUser->user_email }}</p>
                         </div>
 
                         <x-dropdown-link :href="route('profile.edit')">
                             <span class="flex items-center gap-2.5">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                {{ __('Perfil') }}
+                                <x-icon name="user" class="w-4 h-4 text-slate-400" />
+                                Mi Perfil
                             </span>
                         </x-dropdown-link>
 
-                        <button @click="toggleTheme" class="w-full text-start">
-                            <x-dropdown-link>
-                                <span class="flex items-center gap-2.5">
-                                    <template x-if="theme === 'dark'">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                                    </template>
-                                    <template x-if="theme !== 'dark'">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-                                    </template>
-                                    <span x-text="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'"></span>
-                                </span>
-                            </x-dropdown-link>
-                        </button>
+                        <x-dropdown-link as="button" type="button" @click="toggleGrayscale()">
+                            <span class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                                <span x-text="grayscale ? 'Modo Color' : 'Escala de Grises'"></span>
+                            </span>
+                        </x-dropdown-link>
 
                         <div class="border-t" style="border-color: var(--color-border);">
-                            <form method="POST" action="{{ route('logout') }}">
+                            <form method="POST" action="{{ route('logout') }}" data-clear-chat-history>
                                 @csrf
-                                <x-dropdown-link :href="route('logout')"
-                                        onclick="event.preventDefault(); this.closest('form').submit();">
+                                <x-dropdown-link as="button" type="submit" class="text-red-500">
                                     <span class="flex items-center gap-2.5">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                        </svg>
-                                        {{ __('Cerrar sesión') }}
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                        Cerrar sesión
                                     </span>
                                 </x-dropdown-link>
                             </form>
@@ -112,80 +297,87 @@
                     </x-slot>
                 </x-dropdown>
             </div>
-
-            {{-- Hamburger (móvil) --}}
-            <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open"
-                        class="inline-flex items-center justify-center p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 transition duration-200"
-                        :aria-expanded="open.toString()"
-                        aria-label="Abrir menú">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                        <path :class="{'hidden': open, 'inline-flex': !open }" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': !open, 'inline-flex': open }" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
         </div>
     </div>
+</header>
 
-    {{-- Menú responsive --}}
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden border-t" style="border-color: rgba(255,255,255,0.06); background: var(--color-primary-dark);">
-        <div class="pt-2 pb-3 space-y-1 px-3">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                🏠 {{ __('Inicio') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('dashboard')" :active="false">
-                💬 {{ __('Chat IA') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('levels.index')" :active="request()->routeIs('levels.*')">
-                🗺️ {{ __('Avance') }}
-            </x-responsive-nav-link>
-            @if (Auth::user()->isProfessor() || Auth::user()->isAdmin())
-                <x-responsive-nav-link :href="route('professor.dashboard')" :active="request()->routeIs('professor.*')">
-                    📚 {{ __('Profesor') }}
-                </x-responsive-nav-link>
+{{-- ═════════════════════════════════════════════════════════════════
+     3. BARRA DE NAVEGACIÓN INFERIOR TÁCTIL (MOBILE ESTILO DUOLINGO)
+     ═════════════════════════════════════════════════════════════════ --}}
+<nav class="lg:hidden fixed bottom-0 inset-x-0 z-50 border-t backdrop-blur-2xl shadow-2xl transition-colors duration-300"
+     style="border-color: var(--color-border); background: var(--color-glass);"
+     aria-label="Navegación móvil inferior">
+    <div class="grid grid-cols-5 h-16 items-center px-2">
+        @if ($isStudent)
+            {{-- Inicio --}}
+            <a href="{{ route('dashboard') }}"
+               class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ $dashboardActive ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-slate-400' }}"
+               aria-label="Inicio">
+                <x-icon name="home" class="w-5 h-5" />
+                <span class="text-[10px] uppercase font-bold tracking-tight">Inicio</span>
+            </a>
+
+            {{-- Ruta CEFR --}}
+            <a href="{{ route('levels.index') }}"
+               class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ $learningActive ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-slate-400' }}"
+               aria-label="Ruta CEFR">
+                <x-icon name="map" class="w-5 h-5" />
+                <span class="text-[10px] uppercase font-bold tracking-tight">Ruta</span>
+            </a>
+
+            {{-- Listening --}}
+            <a href="{{ route('listening.index') }}"
+               class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ $listeningActive ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-slate-400' }}"
+               aria-label="Listening">
+                <x-icon name="headphones" class="w-5 h-5" />
+                <span class="text-[10px] uppercase font-bold tracking-tight">Audio</span>
+            </a>
+
+            {{-- Tutor IA --}}
+            <a href="{{ route('chat.index') }}"
+               class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ $chatActive ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-400' }}"
+               aria-label="Tutor IA">
+                <x-icon name="bot" class="w-5 h-5" />
+                <span class="text-[10px] uppercase font-bold tracking-tight">Tutor IA</span>
+            </a>
+
+            {{-- Perfil --}}
+            <a href="{{ route('profile.edit') }}"
+               class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ request()->routeIs('profile.*') ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-slate-400' }}"
+               aria-label="Perfil">
+                <x-icon name="user" class="w-5 h-5" />
+                <span class="text-[10px] uppercase font-bold tracking-tight">Perfil</span>
+            </a>
+        @else
+            {{-- Docente / Admin --}}
+            <a href="{{ route('professor.dashboard') }}"
+               class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ $professorActive ? 'text-indigo-600 dark:text-indigo-400 font-extrabold' : 'text-slate-400' }}"
+               aria-label="Seguimiento">
+                <x-icon name="chart-bar" class="w-5 h-5" />
+                <span class="text-[10px] uppercase font-bold tracking-tight">Panel</span>
+            </a>
+
+            @if ($isAdmin)
+                <a href="{{ route('admin.dashboard') }}"
+                   class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ $adminActive ? 'text-purple-600 dark:text-purple-400 font-extrabold' : 'text-slate-400' }}"
+                   aria-label="Admin">
+                    <x-icon name="settings" class="w-5 h-5" />
+                    <span class="text-[10px] uppercase font-bold tracking-tight">Admin</span>
+                </a>
+                <a href="{{ route('admin.users') }}"
+                   class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ request()->routeIs('admin.users*') ? 'text-sky-600 dark:text-sky-400 font-extrabold' : 'text-slate-400' }}"
+                   aria-label="Usuarios">
+                    <x-icon name="user" class="w-5 h-5" />
+                    <span class="text-[10px] uppercase font-bold tracking-tight">Usuarios</span>
+                </a>
             @endif
-            @if (Auth::user()->isAdmin())
-                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
-                    ⚙️ {{ __('Admin') }}
-                </x-responsive-nav-link>
-            @endif
-        </div>
 
-        <div class="pt-3 pb-4 border-t px-3" style="border-color: rgba(255,255,255,0.08);">
-            <div class="flex items-center gap-3 mb-3 px-1">
-                <span class="flex h-9 w-9 items-center justify-center rounded-full font-bold text-white text-xs shadow-inner"
-                      style="background: linear-gradient(135deg, var(--color-accent), var(--color-warning));">
-                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                </span>
-                <div>
-                    <div class="font-semibold text-sm text-white">{{ Auth::user()->name }}</div>
-                    <div class="text-xs text-white/60">{{ Auth::user()->email }}</div>
-                </div>
-            </div>
-
-            <div class="space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    👤 {{ __('Perfil') }}
-                </x-responsive-nav-link>
-
-                <button @click="toggleTheme" class="w-full text-start">
-                    <x-responsive-nav-link>
-                        <span class="flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-                            <span x-text="theme === 'dark' ? 'Modo claro' : 'Modo oscuro'"></span>
-                        </span>
-                    </x-responsive-nav-link>
-                </button>
-
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault(); this.closest('form').submit();">
-                        🚪 {{ __('Cerrar sesión') }}
-                    </x-responsive-nav-link>
-                </form>
-            </div>
-        </div>
+            <a href="{{ route('profile.edit') }}"
+               class="flex flex-col items-center justify-center gap-1 py-1 transition-transform active:scale-90 {{ request()->routeIs('profile.*') ? 'text-emerald-600 dark:text-emerald-400 font-extrabold' : 'text-slate-400' }}"
+               aria-label="Perfil">
+                <x-icon name="user" class="w-5 h-5" />
+                <span class="text-[10px] uppercase font-bold tracking-tight">Perfil</span>
+            </a>
+        @endif
     </div>
 </nav>

@@ -20,6 +20,9 @@ class AttemptLog extends Model
     protected $fillable = [
         'user_id',
         'lesson_id',
+        'attempt_skill_type',
+        'questionnaire_id',
+        'listening_lesson_id',
         'attempt_score',
         'ai_feedback',
         'passed',
@@ -43,6 +46,16 @@ class AttemptLog extends Model
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class, 'lesson_id');
+    }
+
+    public function questionnaire(): BelongsTo
+    {
+        return $this->belongsTo(Questionnaire::class, 'questionnaire_id');
+    }
+
+    public function listeningLesson(): BelongsTo
+    {
+        return $this->belongsTo(ListeningLesson::class, 'listening_lesson_id');
     }
 
     public function responses(): HasMany

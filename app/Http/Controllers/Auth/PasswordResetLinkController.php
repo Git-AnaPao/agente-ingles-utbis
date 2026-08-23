@@ -6,12 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-class PasswordResetLinkController extends Controller
+class PasswordResetLinkController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [new Middleware('throttle:3,10', only: ['store'])];
+    }
+
     /**
      * Display the password reset link request view.
      */
@@ -27,18 +35,22 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $request->merge([
+            'email' => Str::lower(trim((string) $request->input('email'))),
+        ]);
+
         $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'email', 'max:255'],
         ]);
 
         $user = User::where('user_email', $request->email)->first();
-        $status = $user
-            ? Password::sendResetLink(['user_email' => $user->user_email])
-            : Password::INVALID_USER;
 
-        return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+        if ($user && $user->user_status === 'active' && filled($user->getAuthPassword())) {
+            Password::sendResetLink(['user_email' => $user->user_email]);
+        }
+
+        return back()
+            ->withInput($request->only('email'))
+            ->with('status', __('passwords.sent_if_exists'));
     }
 }

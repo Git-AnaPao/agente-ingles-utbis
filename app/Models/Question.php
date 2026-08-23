@@ -20,6 +20,8 @@ class Question extends Model
         'questionnaire_id',
         'question_type',
         'question_skill_type',
+        'question_order',
+        'question_passage',
         'question_text',
         'correct_answer',
     ];

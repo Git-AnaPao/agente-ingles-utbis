@@ -19,9 +19,18 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'password' => ['required', 'string', 'max:255'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email')) {
+            $this->merge([
+                'email' => Str::lower(trim((string) $this->input('email'))),
+            ]);
+        }
     }
 
     public function authenticate(): void
@@ -31,6 +40,7 @@ class LoginRequest extends FormRequest
         if (! Auth::attempt([
             'user_email' => $this->email,
             'password' => $this->password,
+            'user_status' => 'active',
         ], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 

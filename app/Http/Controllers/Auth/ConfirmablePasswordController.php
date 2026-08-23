@@ -14,8 +14,15 @@ class ConfirmablePasswordController extends Controller
     /**
      * Show the confirm password view.
      */
-    public function show(): View
+    public function show(Request $request): RedirectResponse|View
     {
+        if (blank($request->user()->getAuthPassword())) {
+            return redirect()->route('profile.edit')->with(
+                'error',
+                'Tu cuenta usa el acceso de Google y no tiene una contraseña local que confirmar.',
+            );
+        }
+
         return view('auth.confirm-password');
     }
 
@@ -24,6 +31,17 @@ class ConfirmablePasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (blank($request->user()->getAuthPassword())) {
+            return redirect()->route('profile.edit')->with(
+                'error',
+                'Tu cuenta usa el acceso de Google y no tiene una contraseña local que confirmar.',
+            );
+        }
+
+        $request->validate([
+            'password' => ['required', 'string', 'max:255'],
+        ]);
+
         if (! Auth::guard('web')->validate([
             'user_email' => $request->user()->user_email,
             'password' => $request->password,

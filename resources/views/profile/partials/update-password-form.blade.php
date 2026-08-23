@@ -1,49 +1,34 @@
-<section>
-    <header>
-        <h2 class="text-lg font-medium" style="color: var(--color-text);">
-            {{ __('Update Password') }}
-        </h2>
+<form method="post" action="{{ route('password.update') }}" class="space-y-5">
+    @csrf
+    @method('put')
 
-        <p class="mt-1 text-sm" style="color: var(--color-text-secondary);">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
-        </p>
-    </header>
+    <div>
+        <x-input-label for="update_password_current_password" value="Contraseña actual" />
+        <x-text-input id="update_password_current_password" name="current_password" type="password"
+                      :invalid="$errors->updatePassword->has('current_password')"
+                      aria-describedby="current-password-error"
+                      required autocomplete="current-password" />
+        <x-input-error id="current-password-error" :messages="$errors->updatePassword->get('current_password')" />
+    </div>
 
-    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
-        @csrf
-        @method('put')
+    <div>
+        <x-input-label for="update_password_password" value="Nueva contraseña" />
+        <x-text-input id="update_password_password" name="password" type="password"
+                      :invalid="$errors->updatePassword->has('password')"
+                      aria-describedby="new-password-help new-password-error"
+                      required autocomplete="new-password" />
+        <p id="new-password-help" class="form-help">Usa al menos 8 caracteres.</p>
+        <x-input-error id="new-password-error" :messages="$errors->updatePassword->get('password')" />
+    </div>
 
-        <div>
-            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
-        </div>
+    <div>
+        <x-input-label for="update_password_password_confirmation" value="Confirmar nueva contraseña" />
+        <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password"
+                      :invalid="$errors->updatePassword->has('password_confirmation')"
+                      aria-describedby="password-confirmation-error"
+                      required autocomplete="new-password" />
+        <x-input-error id="password-confirmation-error" :messages="$errors->updatePassword->get('password_confirmation')" />
+    </div>
 
-        <div>
-            <x-input-label for="update_password_password" :value="__('New Password')" />
-            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
-        </div>
-
-        <div>
-            <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
-            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
-            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
-
-            @if (session('status') === 'password-updated')
-                <p
-                    x-data="{ show: true }"
-                    x-show="show"
-                    x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm"
-                    style="color: var(--color-text-secondary);"
-                >{{ __('Saved.') }}</p>
-            @endif
-        </div>
-    </form>
-</section>
+    <x-primary-button data-loading-text="Actualizando...">Actualizar contraseña</x-primary-button>
+</form>
