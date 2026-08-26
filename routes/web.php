@@ -66,5 +66,16 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/users/{user}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
     });
 });
+use Illuminate\Support\Facades\Mail;
+
+Route::get('/enviar-prueba', function () {
+    
+    Mail::html('<p>Congrats on sending your <strong>first email</strong>!</p>', function ($message) {
+        $message->to('t23anapaola-irigoyen@utbispuebla.edu.mx')
+                ->subject('Hello World');
+    });
+
+    return '¡Correo enviado con éxito!';
+});
 
 require __DIR__.'/auth.php';
