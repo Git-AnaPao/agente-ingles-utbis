@@ -33,26 +33,9 @@
             ],
         ];
 
-        $skillMeta = [
-            'reading' => [
-                'label' => 'Reading',
-                'icon' => 'book-open',
-                'pill_class' => 'ef-skill-reading',
-            ],
-            'listening' => [
-                'label' => 'Listening',
-                'icon' => 'headphones',
-                'pill_class' => 'ef-skill-listening',
-            ],
-            'speaking' => [
-                'label' => 'Speaking',
-                'icon' => 'mic',
-                'pill_class' => 'ef-skill-speaking',
-            ],
-        ];
-        $allSubLevels = collect($levels)->pluck('sub_levels')->flatten(1);
-        $totalNodes = $allSubLevels->count();
-        $completedNodes = $allSubLevels->where('completed', true)->count();
+        $allLessons = collect($levels)->pluck('lessons')->flatten(1);
+        $totalNodes = $allLessons->count();
+        $completedNodes = $allLessons->where('completed', true)->count();
         $completionPct = $totalNodes > 0 ? (int) round(($completedNodes / $totalNodes) * 100) : 0;
         $totalXp = $gamification['total_xp'] ?? (auth()->user()->xp ?? 0);
     @endphp
@@ -79,7 +62,7 @@
                             <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
                                 Nivel {{ $placement?->result_level ?? 'A1' }}
                             </span>. 
-                            Avanza subnivel a subnivel dominando lectura, comprensión auditiva y conversación con IA.
+                            Avanza lección a lección dominando lectura, escritura, comprensión auditiva y conversación con IA.
                         </p>
                     </div>
 
@@ -161,7 +144,7 @@
 
                             <div class="flex items-center gap-3 shrink-0">
                                 <div class="text-right">
-                                    <span class="text-xs font-mono font-black block" style="color: var(--color-text);">{{ $level['completed'] }}/{{ $level['total'] }} Hitos</span>
+                                    <span class="text-xs font-mono font-black block" style="color: var(--color-text);">{{ $level['completed'] }}/{{ $level['total'] }} Lecciones</span>
                                     <span class="text-[10px] uppercase font-bold" style="color: var(--color-text-secondary);">{{ $levelPct }}% Dominado</span>
                                 </div>
                                 <div class="w-20 sm:w-28 progress-bar h-2.5">
@@ -170,101 +153,41 @@
                             </div>
                         </header>
 
-                        {{-- Lista de Nodos / Subniveles --}}
-                        @if (empty($level['sub_levels']))
+                        {{-- Lista de Lecciones del Nivel --}}
+                        @if (empty($level['lessons']))
                             <div class="py-12 text-center text-xs sm:text-sm" style="color: var(--color-text-secondary);">
                                 📚 Contenido formativo en preparación para este nivel.
                             </div>
                         @else
-                            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                @foreach ($level['sub_levels'] as $node)
-                                    @php
-                                        $lesson = $node['lesson'];
-                                        $topic = $node['topics'][0] ?? ($lesson->lesson_prompt_payload['topic'] ?? ('Unidad '.$level['cefr'].'.'.$node['sub_level']));
-                                    @endphp
+                            @php
+                                $visibleCount = 3;
+                                $firstRows = collect($level['lessons'])->take($visibleCount)->values();
+                                $restRows = collect($level['lessons'])->slice($visibleCount)->values();
+                                // Auto-abrir el desplegable si la lección "en curso" queda oculta entre las restantes.
+                                $currentBeyondFirst = $restRows->first(fn (array $row): bool => ! $row['completed'] && ($row['unlocked'] ?? true) && ! $isLocked);
+                            @endphp
 
-                                    <article class="solid-card p-5 border flex flex-col justify-between transition-all duration-300 {{ $node['completed'] ? 'border-emerald-500/30 bg-emerald-500/5' : '' }} {{ $isLocked ? 'opacity-60' : 'hover:-translate-y-1 hover:shadow-md' }}"
-                                             style="border-color: var(--color-card-border);">
-                                        <div>
-                                            {{-- Indicador de Subnivel --}}
-                                            <div class="flex items-center justify-between gap-2 mb-3">
-                                                <span class="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold"
-                                                      style="background: var(--color-bg); color: var(--color-text-secondary);">
-                                                    Subnivel {{ $node['sub_level'] }}
-                                                </span>
-
-                                                {{-- Estado del Nodo Duolingo --}}
-                                                @if ($node['completed'])
-                                                    <span class="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                                                        ✓ Dominado
-                                                    </span>
-                                                @elseif ($isLocked)
-                                                    <span class="text-xs text-slate-400 font-bold flex items-center gap-1">
-                                                        🔒 Bloqueado
-                                                    </span>
-                                                @elseif ($node['attempted'])
-                                                    <span class="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                                        En progreso
-                                                    </span>
-                                                @else
-                                                    <span class="inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                                        Disponible
-                                                    </span>
-                                                @endif
-                                            </div>
-
-                                            {{-- Título y Tema --}}
-                                            <div class="mb-4">
-                                                <span class="text-[10px] font-bold uppercase tracking-wider block" style="color: var(--color-text-secondary);">
-                                                    {{ $node['completed'] ? 'Hito Académico' : 'Objetivo de Estudio' }}
-                                                </span>
-                                                <h3 class="font-display font-extrabold text-sm sm:text-base mt-0.5 line-clamp-2" style="color: var(--color-text);" title="{{ $topic }}">
-                                                    {{ $topic }}
-                                                </h3>
-                                            </div>
-
-                                            {{-- Pestañas de Habilidades EF English con Iconos Vectoriales --}}
-                                            <div class="space-y-1.5 mb-4">
-                                                @foreach ($skillMeta as $skill => $meta)
-                                                    @php $state = $node['skills'][$skill]; @endphp
-                                                    <div class="flex items-center justify-between p-2 rounded-xl text-xs font-semibold border"
-                                                         style="background: var(--color-card); border-color: var(--color-border);">
-                                                        <span class="flex items-center gap-2">
-                                                            <x-icon :name="$meta['icon']" class="w-3.5 h-3.5 text-slate-400" />
-                                                            <span style="color: var(--color-text);">{{ $meta['label'] }}</span>
-                                                        </span>
-                                                        @if ($state['mastered'])
-                                                            <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">✓ Listo</span>
-                                                        @elseif ($isLocked || ! $state['available'])
-                                                            <span class="text-slate-400 text-[11px]">{{ $isLocked ? 'Bloqueado' : 'Opcional' }}</span>
-                                                        @else
-                                                            <span class="text-amber-500 font-bold text-[11px]">Pendiente</span>
-                                                        @endif
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-
-                                        {{-- Botón de Acción Táctil 3D Duolingo --}}
-                                        <div class="mt-2 pt-3 border-t" style="border-color: var(--color-border);">
-                                            @if ($isLocked)
-                                                <button type="button" disabled class="btn-duo btn-duo-outline w-full text-xs py-2 opacity-50">
-                                                    🔒 Bloqueado
-                                                </button>
-                                            @elseif ($lesson)
-                                                @php
-                                                    $activeSkill = collect(['reading', 'listening', 'speaking'])->first(fn ($s) => ! in_array($s, $node['mastered_skills'], true)) ?? 'reading';
-                                                @endphp
-                                                <a href="{{ route('lessons.learn', ['lesson' => $lesson, 'tab' => $activeSkill]) }}"
-                                                   class="btn-duo {{ $node['completed'] ? 'btn-duo-outline' : 'btn-duo-green' }} w-full text-xs py-2.5">
-                                                    <span>{{ $node['completed'] ? 'Repasar Lección' : 'Comenzar Lección' }}</span>
-                                                    <span>→</span>
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </article>
+                            <div class="space-y-2">
+                                @foreach ($firstRows as $row)
+                                    @include('levels.partials.lesson-row', ['row' => $row, 'levelLocked' => $isLocked])
                                 @endforeach
                             </div>
+
+                            @if ($restRows->isNotEmpty())
+                                <details class="mt-2 group" @if ($currentBeyondFirst) open @endif>
+                                    <summary class="cursor-pointer list-none flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-xl border transition-colors hover:border-emerald-500"
+                                             style="background: var(--color-bg); border-color: var(--color-border); color: var(--color-text-secondary);">
+                                        <span class="group-open:hidden">Ver las {{ $restRows->count() }} lecciones restantes</span>
+                                        <span class="hidden group-open:inline">Ocultar lecciones</span>
+                                        <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                    </summary>
+                                    <div class="space-y-2 mt-2">
+                                        @foreach ($restRows as $row)
+                                            @include('levels.partials.lesson-row', ['row' => $row, 'levelLocked' => $isLocked])
+                                        @endforeach
+                                    </div>
+                                </details>
+                            @endif
 
                             {{-- Hito Final de la Unidad (Cofre / Certificado) --}}
                             <div class="mt-6 p-4 rounded-2xl border flex items-center justify-between gap-4"
@@ -278,7 +201,7 @@
                                             Hito de Certificación: Nivel {{ $level['cefr'] }}
                                         </h4>
                                         <p class="text-[11px]" style="color: var(--color-text-secondary);">
-                                            {{ $levelPct === 100 ? '¡Unidad dominada con éxito!' : 'Completa todos los subniveles para desbloquear la maestría de este nivel.' }}
+                                            {{ $levelPct === 100 ? '¡Nivel dominado con éxito!' : 'Completa todas las lecciones para desbloquear la maestría de este nivel.' }}
                                         </p>
                                     </div>
                                 </div>

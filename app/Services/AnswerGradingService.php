@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Contracts\AiProvider;
 use App\Models\AttemptLog;
-use App\Models\Lesson;
 use App\Models\ListeningLesson;
 use App\Models\Question;
 use App\Models\Questionnaire;
@@ -49,13 +48,13 @@ class AnswerGradingService
      */
     public function gradePractice(
         User $user,
-        Lesson $lesson,
+        ListeningLesson $listeningLesson,
         Questionnaire $questionnaire,
         Collection $questions,
         array $studentAnswers,
         string $skill,
     ): self {
-        if (! in_array($skill, ['reading', 'listening'], true)) {
+        if (! in_array($skill, ['reading', 'writing', 'listening'], true)) {
             throw new \InvalidArgumentException("Unsupported practice skill: {$skill}");
         }
 
@@ -65,13 +64,13 @@ class AnswerGradingService
         $errors = [];
         $attempt = null;
 
-        DB::transaction(function () use ($user, $lesson, $questionnaire, $questions, $studentAnswers, $skill, &$results, &$correctCount, &$gradableCount, &$errors, &$attempt) {
+        DB::transaction(function () use ($user, $listeningLesson, $questionnaire, $questions, $studentAnswers, $skill, &$results, &$correctCount, &$gradableCount, &$errors, &$attempt) {
             $attempt = AttemptLog::create([
                 'user_id' => $user->user_id,
-                'lesson_id' => $lesson->lesson_id,
+                'lesson_id' => $listeningLesson->lesson_id,
                 'attempt_skill_type' => $skill,
                 'questionnaire_id' => $questionnaire->questionnaire_id,
-                'listening_lesson_id' => $questionnaire->listening_lesson_id,
+                'listening_lesson_id' => $listeningLesson->listening_lesson_id,
                 'attempt_score' => 0,
                 'passed' => false,
             ]);
@@ -118,9 +117,9 @@ class AnswerGradingService
             $attempt->update(['attempt_score' => $score, 'passed' => $passed]);
 
             if ($passed) {
-                $progress = StudentProgress::masterSkillWhenEligible(
+                $progress = StudentProgress::masterListeningLessonSkillWhenEligible(
                     $user,
-                    $lesson,
+                    $listeningLesson,
                     $skill,
                     StudentProgress::latestPlacementFor($user)?->placement_test_id,
                 );

@@ -21,7 +21,7 @@ class SpeakingFeedbackValidationTest extends TestCase
         [$student, $lesson, $content] = $this->speakingScenario();
 
         $this->actingAs($student)->postJson(
-            route('lessons.speaking-feedback', [$lesson, $content]),
+            route('lessons.speaking-feedback', $content),
             ['audio_base64' => str_repeat('a', 4000001), 'mime_type' => 'audio/webm'],
         )->assertUnprocessable();
     }
@@ -31,7 +31,7 @@ class SpeakingFeedbackValidationTest extends TestCase
         [$student, $lesson, $content] = $this->speakingScenario();
 
         $this->actingAs($student)->postJson(
-            route('lessons.speaking-feedback', [$lesson, $content]),
+            route('lessons.speaking-feedback', $content),
             ['audio_base64' => 'dGVzdA==', 'mime_type' => 'text/html'],
         )->assertUnprocessable();
 
@@ -41,31 +41,9 @@ class SpeakingFeedbackValidationTest extends TestCase
         $this->app->instance(AiProvider::class, $gemini);
 
         $this->actingAs($student)->postJson(
-            route('lessons.speaking-feedback', [$lesson, $content]),
+            route('lessons.speaking-feedback', $content),
             ['audio_base64' => 'not-base64!', 'mime_type' => 'audio/webm'],
         )->assertUnprocessable();
-    }
-
-    public function test_rejects_content_owned_by_another_lesson(): void
-    {
-        [$student, $lesson] = $this->speakingScenario();
-        $otherLesson = Lesson::create([
-            'lesson_cefr_level' => 'A1',
-            'lesson_sub_level' => 2,
-            'lesson_prompt_payload' => ['topic' => 'Other'],
-        ]);
-        $foreign = ListeningLesson::create([
-            'lesson_id' => $otherLesson->lesson_id,
-            'cefr_level' => 'A1',
-            'sub_level' => 2,
-            'title' => 'Foreign content',
-            'speaking_text' => 'Hello',
-        ]);
-
-        $this->actingAs($student)->postJson(
-            route('lessons.speaking-feedback', [$lesson, $foreign]),
-            ['audio_base64' => 'dGVzdA==', 'mime_type' => 'audio/webm'],
-        )->assertForbidden();
     }
 
     public function test_approved_speaking_persists_attempt_progress_and_xp_once(): void
@@ -82,7 +60,7 @@ class SpeakingFeedbackValidationTest extends TestCase
 
         $payload = ['audio_base64' => 'dGVzdA==', 'mime_type' => 'audio/webm'];
         $this->actingAs($student)
-            ->postJson(route('lessons.speaking-feedback', [$lesson, $content]), $payload)
+            ->postJson(route('lessons.speaking-feedback', $content), $payload)
             ->assertOk()
             ->assertJsonPath('evaluated', true)
             ->assertJsonPath('passed', true)
@@ -95,13 +73,13 @@ class SpeakingFeedbackValidationTest extends TestCase
         ]);
         $this->assertDatabaseHas('student_progress', [
             'student_id' => $student->user_id,
-            'lesson_id' => $lesson->lesson_id,
+            'listening_lesson_id' => $content->listening_lesson_id,
             'student_skill_type' => 'speaking',
         ]);
         $this->assertSame(40, $student->fresh()->xp);
 
         $this->actingAs($student)
-            ->postJson(route('lessons.speaking-feedback', [$lesson, $content]), $payload)
+            ->postJson(route('lessons.speaking-feedback', $content), $payload)
             ->assertOk()
             ->assertJsonPath('xp_awarded', 0);
         $this->assertSame(40, $student->fresh()->xp);
@@ -121,7 +99,7 @@ class SpeakingFeedbackValidationTest extends TestCase
         $this->app->instance(AiProvider::class, $gemini);
 
         $this->actingAs($student)
-            ->postJson(route('lessons.speaking-feedback', [$lesson, $content]), [
+            ->postJson(route('lessons.speaking-feedback', $content), [
                 'audio_base64' => 'dGVzdA==',
                 'mime_type' => 'audio/webm',
             ])

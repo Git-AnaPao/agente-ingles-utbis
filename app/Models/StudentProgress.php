@@ -14,7 +14,17 @@ class StudentProgress extends Model
 
     public const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
-    public const LEARNING_SKILLS = ['reading', 'listening', 'speaking'];
+    public const LEARNING_SKILLS = ['reading', 'writing', 'listening', 'speaking'];
+
+    /**
+     * The real pedagogical unit ("Lesson #1 Presentaciones...") is a
+     * `listening_lessons` row, not a `lessons` row (that one groups ~16 of
+     * them into an import batch/unit). These are the skills that must be
+     * deterministically graded and required to complete one of them;
+     * speaking stays optional since it depends on an AI provider being
+     * configured.
+     */
+    public const REQUIRED_LISTENING_LESSON_SKILLS = ['reading', 'writing', 'listening'];
 
     public const PASSING_SCORE = 70;
 
@@ -30,6 +40,7 @@ class StudentProgress extends Model
         'student_id',
         'placement_test_id',
         'lesson_id',
+        'listening_lesson_id',
         'student_cefr_level',
         'student_sub_level',
         'student_skill_type',
@@ -296,7 +307,7 @@ class StudentProgress extends Model
     public static function requiredSkillsForLesson(Lesson $lesson): array
     {
         return array_values(array_filter(
-            ['reading', 'listening'],
+            self::REQUIRED_LISTENING_LESSON_SKILLS,
             fn (string $skill): bool => self::evaluableActivitiesForSkill($lesson, $skill) !== [],
         ));
     }
@@ -471,6 +482,262 @@ class StudentProgress extends Model
         return in_array($cefrLevel, self::unlockedCefrLevels($student), true);
     }
 
+    /**
+     * Sequential lesson gate within an already-unlocked CEFR level: lesson 1
+     * is always open, and lesson N+1 opens only once lesson N is complete.
+     */
+    public static function lessonIsUnlocked(User $student, Lesson $lesson): bool
+    {
+        if (! self::levelIsUnlocked($student, $lesson->lesson_cefr_level)) {
+            return false;
+        }
+
+        if ((int) $lesson->lesson_sub_level <= 1) {
+            return true;
+        }
+
+        $previous = Lesson::query()
+            ->where('lesson_cefr_level', $lesson->lesson_cefr_level)
+            ->where('lesson_sub_level', (int) $lesson->lesson_sub_level - 1)
+            ->first();
+
+        if (! $previous) {
+            return true;
+        }
+
+        self::prepareLessonsForProgress([$previous]);
+
+        $mastered = $student->progress()
+            ->where('lesson_id', $previous->lesson_id)
+            ->pluck('student_skill_type')
+            ->all();
+
+        return self::lessonIsComplete($previous, $mastered);
+    }
+
+    // ------------------------------------------------------------------
+    // ListeningLesson-scoped progress: the real "Lesson #N" the student
+    // sees (a `lessons` row is really an import unit grouping ~16 of
+    // these). Each one carries its own questionnaire, so evaluation here
+    // is scoped to that single questionnaire instead of the whole unit.
+    // ------------------------------------------------------------------
+
+    /**
+     * @return Collection<int, Question>
+     */
+    public static function evaluableQuestionsForListeningLessonSkill(ListeningLesson $listeningLesson, string $skill): Collection
+    {
+        if ($skill === 'speaking') {
+            return collect();
+        }
+
+        if (! in_array($skill, self::LEARNING_SKILLS, true)) {
+            throw new InvalidArgumentException("Unsupported learning skill: {$skill}");
+        }
+
+        $questionnaire = $listeningLesson->questionnaire;
+        if (! $questionnaire) {
+            return collect();
+        }
+
+        return $questionnaire->questions
+            ->filter(fn (Question $question): bool => self::normalizeSkill(
+                $question->question_skill_type,
+                $question->question_type,
+            ) === $skill)
+            ->filter(fn (Question $question): bool => self::questionIsDeterministicallyGradable($question))
+            ->values();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function availableSkillsForListeningLesson(ListeningLesson $listeningLesson): array
+    {
+        $available = [];
+
+        if (self::hasText($listeningLesson->reading_text)
+            || self::evaluableQuestionsForListeningLessonSkill($listeningLesson, 'reading')->isNotEmpty()) {
+            $available['reading'] = true;
+        }
+
+        if (self::evaluableQuestionsForListeningLessonSkill($listeningLesson, 'writing')->isNotEmpty()) {
+            $available['writing'] = true;
+        }
+
+        if (self::hasText($listeningLesson->listening_script)
+            || self::hasText($listeningLesson->audio_drive_file_id)
+            || self::hasText($listeningLesson->audio_drive_url)
+            || self::hasText($listeningLesson->audio_local_path)
+            || self::evaluableQuestionsForListeningLessonSkill($listeningLesson, 'listening')->isNotEmpty()) {
+            $available['listening'] = true;
+        }
+
+        if (self::hasText($listeningLesson->speaking_text)) {
+            $available['speaking'] = true;
+        }
+
+        return array_values(array_filter(
+            self::LEARNING_SKILLS,
+            fn (string $skill): bool => isset($available[$skill]),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function requiredSkillsForListeningLesson(ListeningLesson $listeningLesson): array
+    {
+        return array_values(array_filter(
+            self::REQUIRED_LISTENING_LESSON_SKILLS,
+            fn (string $skill): bool => self::evaluableQuestionsForListeningLessonSkill($listeningLesson, $skill)->isNotEmpty(),
+        ));
+    }
+
+    /**
+     * @param  iterable<int, string|StudentProgress>  $masteredSkills
+     */
+    public static function listeningLessonIsComplete(ListeningLesson $listeningLesson, iterable $masteredSkills): bool
+    {
+        $required = self::requiredSkillsForListeningLesson($listeningLesson);
+        if ($required === []) {
+            return false;
+        }
+
+        $mastered = collect($masteredSkills)
+            ->map(fn (string|self $progress): string => $progress instanceof self
+                ? $progress->student_skill_type
+                : $progress)
+            ->unique()
+            ->all();
+
+        return array_diff($required, $mastered) === [];
+    }
+
+    /**
+     * Sequential gate within the CEFR level, ordered by `sort_order`: lesson
+     * 1 of the level is always open once the level itself is unlocked, and
+     * lesson N+1 opens only once lesson N is complete.
+     */
+    public static function listeningLessonIsUnlocked(User $student, ListeningLesson $listeningLesson): bool
+    {
+        if (! self::levelIsUnlocked($student, $listeningLesson->cefr_level)) {
+            return false;
+        }
+
+        $previous = ListeningLesson::query()
+            ->where('cefr_level', $listeningLesson->cefr_level)
+            ->where('sort_order', '<', $listeningLesson->sort_order)
+            ->orderByDesc('sort_order')
+            ->first();
+
+        if (! $previous) {
+            return true;
+        }
+
+        $mastered = $student->progress()
+            ->where('listening_lesson_id', $previous->listening_lesson_id)
+            ->pluck('student_skill_type')
+            ->all();
+
+        return self::listeningLessonIsComplete($previous, $mastered);
+    }
+
+    /**
+     * The first ListeningLesson in the unit the student hasn't finished yet
+     * (or the last one, in review mode, once the whole unit is complete).
+     */
+    public static function resumeListeningLessonForUnit(User $student, Lesson $unit): ?ListeningLesson
+    {
+        $listeningLessons = ListeningLesson::query()
+            ->where('lesson_id', $unit->lesson_id)
+            ->orderBy('sort_order')
+            ->get();
+
+        if ($listeningLessons->isEmpty()) {
+            return null;
+        }
+
+        $masteredByLesson = $student->progress()
+            ->whereIn('listening_lesson_id', $listeningLessons->pluck('listening_lesson_id'))
+            ->get()
+            ->groupBy('listening_lesson_id');
+
+        return $listeningLessons->first(
+            fn (ListeningLesson $listeningLesson): bool => ! self::listeningLessonIsComplete(
+                $listeningLesson,
+                $masteredByLesson->get($listeningLesson->listening_lesson_id, collect())->pluck('student_skill_type')->all(),
+            ),
+        ) ?? $listeningLessons->first();
+    }
+
+    public static function masterListeningLessonSkill(
+        User $student,
+        ListeningLesson $listeningLesson,
+        string $skill,
+        ?string $placementTestId = null,
+    ): self {
+        if (! in_array($skill, self::LEARNING_SKILLS, true)) {
+            throw new InvalidArgumentException("Unsupported learning skill: {$skill}");
+        }
+
+        return self::query()->firstOrCreate(
+            [
+                'student_id' => $student->user_id,
+                'listening_lesson_id' => $listeningLesson->listening_lesson_id,
+                'student_skill_type' => $skill,
+            ],
+            [
+                'lesson_id' => null,
+                'placement_test_id' => $placementTestId,
+                'student_cefr_level' => $listeningLesson->cefr_level,
+                'student_sub_level' => $listeningLesson->sub_level,
+            ],
+        );
+    }
+
+    public static function masterListeningLessonSkillWhenEligible(
+        User $student,
+        ListeningLesson $listeningLesson,
+        string $skill,
+        ?string $placementTestId = null,
+    ): ?self {
+        if (! in_array($skill, self::LEARNING_SKILLS, true)) {
+            throw new InvalidArgumentException("Unsupported learning skill: {$skill}");
+        }
+
+        $existing = self::query()
+            ->where('student_id', $student->user_id)
+            ->where('listening_lesson_id', $listeningLesson->listening_lesson_id)
+            ->where('student_skill_type', $skill)
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $isEvaluable = $skill === 'speaking'
+            ? self::hasText($listeningLesson->speaking_text)
+            : self::evaluableQuestionsForListeningLessonSkill($listeningLesson, $skill)->isNotEmpty();
+
+        if (! $isEvaluable) {
+            return null;
+        }
+
+        $passedAttempt = AttemptLog::query()
+            ->where('user_id', $student->user_id)
+            ->where('listening_lesson_id', $listeningLesson->listening_lesson_id)
+            ->where('attempt_skill_type', $skill)
+            ->where('passed', true)
+            ->exists();
+
+        if (! $passedAttempt) {
+            return null;
+        }
+
+        return self::masterListeningLessonSkill($student, $listeningLesson, $skill, $placementTestId);
+    }
+
     public static function normalizeSkill(mixed $skill, mixed $type = null): ?string
     {
         $skill = strtolower(trim((string) $skill));
@@ -484,7 +751,11 @@ class StudentProgress extends Model
             return 'listening';
         }
 
-        if (in_array($skill, ['reading', 'writing'], true)) {
+        if ($skill === 'writing') {
+            return 'writing';
+        }
+
+        if ($skill === 'reading') {
             return 'reading';
         }
 
@@ -630,5 +901,10 @@ class StudentProgress extends Model
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class, 'lesson_id');
+    }
+
+    public function listeningLesson(): BelongsTo
+    {
+        return $this->belongsTo(ListeningLesson::class, 'listening_lesson_id');
     }
 }

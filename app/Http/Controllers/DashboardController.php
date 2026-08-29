@@ -74,21 +74,15 @@ class DashboardController extends Controller
             }
         }
 
-        $nextSkill = 'reading';
-        if ($nextLesson) {
-            $masteredSkills = $progress
-                ->where('lesson_id', $nextLesson->lesson_id)
-                ->pluck('student_skill_type');
-            $nextSkill = collect(StudentProgress::requiredSkillsForLesson($nextLesson))
-                ->first(fn (string $skill): bool => ! $masteredSkills->contains($skill))
-                ?? 'reading';
-        }
+        $nextListeningLesson = $nextLesson
+            ? StudentProgress::resumeListeningLessonForUnit($user, $nextLesson)
+            : null;
 
-        $nextActivityUrl = $nextLesson
-            ? route('lessons.learn', ['lesson' => $nextLesson, 'tab' => $nextSkill])
+        $nextActivityUrl = $nextListeningLesson
+            ? route('lessons.learn', $nextListeningLesson)
             : route('levels.index');
-        $nextActivityName = $nextLesson
-            ? ($nextLesson->lesson_prompt_payload['topic'] ?? "Nivel {$nextLesson->lesson_cefr_level}.{$nextLesson->lesson_sub_level}")
+        $nextActivityName = $nextListeningLesson
+            ? $nextListeningLesson->title
             : 'repasar el mapa de aprendizaje';
         $gamification = app(GamificationService::class)->snapshot($user);
         $levelInfo = app(GamificationService::class)->levelForXp($user->xp ?? 0);

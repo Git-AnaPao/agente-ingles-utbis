@@ -110,7 +110,7 @@
                     <div class="mt-2 whitespace-pre-line text-sm leading-relaxed" lang="en" style="color: var(--color-text);">{{ $listeningLesson->speaking_text }}</div>
                     <p class="mt-3 text-xs" style="color: var(--color-text-secondary);">
                         Para evaluar tu pronunciación con IA,
-                        <a href="{{ route('lessons.learn', ['lesson' => $lesson, 'tab' => 'speaking']) }}" class="font-bold underline text-amber-600 dark:text-amber-400">grábate en la pestaña Speaking</a>.
+                        <a href="{{ route('lessons.learn', ['listeningLesson' => $listeningLesson, 'tab' => 'speaking']) }}" class="font-bold underline text-amber-600 dark:text-amber-400">grábate en la pestaña Speaking</a>.
                     </p>
                 </section>
             @endif
@@ -234,9 +234,9 @@
             const progressBar = document.getElementById('progress-bar');
             const progressTrack = document.getElementById('progress-track');
             const skillUrls = @js([
-                'reading' => route('lessons.learn', ['lesson' => $lesson, 'tab' => 'reading']),
-                'listening' => route('lessons.learn', ['lesson' => $lesson, 'tab' => 'listening']),
-                'speaking' => route('lessons.learn', ['lesson' => $lesson, 'tab' => 'speaking']),
+                'reading' => route('lessons.learn', ['listeningLesson' => $listeningLesson, 'tab' => 'reading']),
+                'listening' => route('lessons.learn', ['listeningLesson' => $listeningLesson, 'tab' => 'listening']),
+                'speaking' => route('lessons.learn', ['listeningLesson' => $listeningLesson, 'tab' => 'speaking']),
             ]);
             const mapUrl = @js(route('levels.index').'#level-'.$lesson->lesson_cefr_level);
             let hasResult = false;

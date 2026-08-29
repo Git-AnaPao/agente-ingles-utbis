@@ -23,11 +23,11 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::middleware('verified')->group(function () {
         Route::get('/levels', [LevelController::class, 'index'])->name('levels.index');
-        Route::get('/lessons/{lesson}/learn', [LevelController::class, 'learn'])->name('lessons.learn');
-        Route::post('/lessons/{lesson}/check-practice', [LevelController::class, 'checkPractice'])
+        Route::get('/lessons/{listeningLesson}/learn', [LevelController::class, 'learn'])->name('lessons.learn');
+        Route::post('/lessons/{listeningLesson}/check-practice', [LevelController::class, 'checkPractice'])
             ->middleware('throttle:10,1')
             ->name('lessons.check-practice');
-        Route::post('/lessons/{lesson}/speaking-feedback/{listeningLesson}', [LevelController::class, 'speakingFeedback'])
+        Route::post('/lessons/{listeningLesson}/speaking-feedback', [LevelController::class, 'speakingFeedback'])
             ->middleware('throttle:6,1')
             ->name('lessons.speaking-feedback');
 

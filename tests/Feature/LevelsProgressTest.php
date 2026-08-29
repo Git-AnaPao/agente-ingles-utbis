@@ -10,7 +10,6 @@ use App\Models\Questionnaire;
 use App\Models\Role;
 use App\Models\StudentProgress;
 use App\Models\User;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -24,313 +23,133 @@ class LevelsProgressTest extends TestCase
         $this->assertFalse(Route::has('lessons.complete'));
     }
 
-    public function test_progress_requires_deterministic_skills_but_speaking_is_optional_for_unlocking(): void
+    public function test_lessons_unlock_sequentially_within_the_same_cefr_level(): void
     {
         $student = $this->makeStudent('A1');
-        $lesson = $this->makeLesson('A1');
-        $this->makeQuestionnaireActivity($lesson, 'reading', 'Reading check');
-        $this->makeQuestionnaireActivity($lesson, 'listening', 'Listening check');
-        ListeningLesson::create([
-            'lesson_id' => $lesson->lesson_id,
-            'cefr_level' => 'A1',
-            'sub_level' => 1,
-            'title' => 'Integrated lesson',
-            'reading_text' => 'Read this text.',
-            'listening_script' => 'Listen to this text.',
-            'speaking_text' => 'Say this text.',
-        ]);
+        $unit = $this->makeUnit('A1');
+        $lessonOne = $this->makeListeningLesson($unit, 1, ['reading', 'writing', 'listening']);
+        $lessonTwo = $this->makeListeningLesson($unit, 2, ['reading', 'writing', 'listening']);
 
-        StudentProgress::masterSkill($student, $lesson, 'reading');
+        $this->actingAs($student)->get(route('lessons.learn', $lessonOne))->assertOk();
+        $this->actingAs($student)->get(route('lessons.learn', $lessonTwo))->assertForbidden();
 
-        $this->assertSame(['reading', 'listening'], StudentProgress::requiredSkillsForLesson($lesson));
-        $this->assertDatabaseCount('student_progress', 1);
-        $this->actingAs($student)
-            ->get(route('levels.index'))
-            ->assertViewHas('levels', fn (array $levels): bool => ! $levels[0]['sub_levels'][0]['completed']);
+        StudentProgress::masterListeningLessonSkill($student, $lessonOne, 'reading');
+        StudentProgress::masterListeningLessonSkill($student, $lessonOne, 'writing');
+        $this->actingAs($student)->get(route('lessons.learn', $lessonTwo))->assertForbidden();
 
-        StudentProgress::masterSkill($student, $lesson, 'listening');
-
-        $this->assertDatabaseCount('student_progress', 2);
-        $this->actingAs($student)
-            ->get(route('levels.index'))
-            ->assertViewHas('levels', fn (array $levels): bool => $levels[0]['sub_levels'][0]['completed']);
+        StudentProgress::masterListeningLessonSkill($student, $lessonOne, 'listening');
+        $this->actingAs($student)->get(route('lessons.learn', $lessonTwo))->assertOk();
     }
 
-    public function test_passing_one_of_multiple_questionnaires_does_not_master_the_skill(): void
+    public function test_map_reflects_unlocked_current_and_locked_lessons(): void
     {
-        config(['services.gemini.api_key' => null]);
         $student = $this->makeStudent('A1');
-        $lesson = $this->makeLesson('A1');
-        [$firstQuestionnaire, $firstQuestion] = $this->makeQuestionnaireActivity(
-            $lesson,
-            'reading',
-            'First reading activity',
-        );
-        [$secondQuestionnaire, $secondQuestion] = $this->makeQuestionnaireActivity(
-            $lesson,
-            'reading',
-            'Second reading activity',
-        );
+        $unit = $this->makeUnit('A1');
+        $lessonOne = $this->makeListeningLesson($unit, 1, ['reading']);
+        $lessonTwo = $this->makeListeningLesson($unit, 2, ['reading']);
+
+        $this->actingAs($student)
+            ->get(route('levels.index'))
+            ->assertOk()
+            ->assertViewHas('levels', fn (array $levels): bool => $levels[0]['lessons'][0]['unlocked']
+                && ! $levels[0]['lessons'][1]['unlocked']);
+
+        StudentProgress::masterListeningLessonSkill($student, $lessonOne, 'reading');
+
+        $this->actingAs($student)
+            ->get(route('levels.index'))
+            ->assertViewHas('levels', fn (array $levels): bool => $levels[0]['lessons'][1]['unlocked']);
+    }
+
+    public function test_reading_and_writing_are_graded_independently(): void
+    {
+        $student = $this->makeStudent('A1');
+        $unit = $this->makeUnit('A1');
+        $lesson = $this->makeListeningLesson($unit, 1, ['reading', 'writing']);
+        $readingQuestion = $lesson->questionnaire->questions->firstWhere('question_skill_type', 'reading');
+        $writingQuestion = $lesson->questionnaire->questions->firstWhere('question_skill_type', 'writing');
 
         $this->actingAs($student)->postJson(route('lessons.check-practice', $lesson), [
-            'questionnaire_id' => $firstQuestionnaire->questionnaire_id,
             'skill' => 'reading',
-            'answers' => [$firstQuestion->question_id => 'answer'],
-        ])->assertOk()
-            ->assertJsonPath('passed', true)
-            ->assertJsonPath('mastered_skills', [])
-            ->assertJsonPath('xp_awarded', 0);
-
-        $this->assertDatabaseMissing('student_progress', [
-            'student_id' => $student->user_id,
-            'lesson_id' => $lesson->lesson_id,
-            'student_skill_type' => 'reading',
-        ]);
-        $this->assertDatabaseHas('attempt_logs', [
-            'attempt_skill_type' => 'reading',
-            'questionnaire_id' => $firstQuestionnaire->questionnaire_id,
-            'passed' => true,
-        ]);
-
-        $this->actingAs($student)->postJson(route('lessons.check-practice', $lesson), [
-            'questionnaire_id' => $secondQuestionnaire->questionnaire_id,
-            'skill' => 'reading',
-            'answers' => [$secondQuestion->question_id => 'answer'],
-        ])->assertOk()
-            ->assertJsonPath('mastered_skills.0', 'reading')
-            ->assertJsonPath('xp_awarded', 50);
+            'answers' => [$readingQuestion->question_id => 'answer'],
+        ])->assertOk()->assertJsonPath('mastered_skills.0', 'reading');
 
         $this->assertDatabaseHas('student_progress', [
             'student_id' => $student->user_id,
-            'lesson_id' => $lesson->lesson_id,
+            'listening_lesson_id' => $lesson->listening_lesson_id,
             'student_skill_type' => 'reading',
         ]);
-    }
-
-    public function test_database_rejects_duplicate_progress_for_the_same_skill(): void
-    {
-        $student = $this->makeStudent('A1');
-        $lesson = $this->makeLesson('A1');
-        $attributes = [
+        $this->assertDatabaseMissing('student_progress', [
             'student_id' => $student->user_id,
-            'lesson_id' => $lesson->lesson_id,
-            'student_cefr_level' => 'A1',
-            'student_sub_level' => 1,
-            'student_skill_type' => 'reading',
-        ];
+            'listening_lesson_id' => $lesson->listening_lesson_id,
+            'student_skill_type' => 'writing',
+        ]);
 
-        StudentProgress::create($attributes);
-        StudentProgress::create([...$attributes, 'student_skill_type' => 'listening']);
-        $this->assertDatabaseCount('student_progress', 2);
+        $response = $this->actingAs($student)->postJson(route('lessons.check-practice', $lesson), [
+            'skill' => 'writing',
+            'answers' => [$writingQuestion->question_id => 'answer'],
+        ])->assertOk();
+        $this->assertEqualsCanonicalizing(['reading', 'writing'], $response->json('mastered_skills'));
 
-        $this->expectException(QueryException::class);
-        StudentProgress::create($attributes);
+        $this->assertDatabaseHas('student_progress', [
+            'student_id' => $student->user_id,
+            'listening_lesson_id' => $lesson->listening_lesson_id,
+            'student_skill_type' => 'writing',
+        ]);
     }
 
-    public function test_dashboard_counts_complete_lessons_and_continues_with_the_missing_skill(): void
+    public function test_lesson_requires_reading_writing_and_listening_but_speaking_stays_optional(): void
     {
         $student = $this->makeStudent('A1');
-        $lesson = $this->makeLesson('A1');
-        ListeningLesson::create([
-            'lesson_id' => $lesson->lesson_id,
-            'cefr_level' => 'A1',
-            'sub_level' => 1,
-            'title' => 'Integrated lesson',
-            'reading_text' => 'Read this.',
-            'listening_script' => 'Listen to this.',
-        ]);
-        $this->makeQuestionnaireActivity($lesson, 'reading', 'Reading check');
-        $this->makeQuestionnaireActivity($lesson, 'listening', 'Listening check');
-        StudentProgress::masterSkill($student, $lesson, 'reading');
+        $unit = $this->makeUnit('A1');
+        $lesson = $this->makeListeningLesson($unit, 1, ['reading', 'writing', 'listening'], withSpeaking: true);
 
-        $this->actingAs($student)
-            ->get(route('dashboard'))
-            ->assertOk()
-            ->assertViewHas('completedCount', 0)
-            ->assertViewHas('completionPct', 0)
-            ->assertViewHas(
-                'nextActivityUrl',
-                route('lessons.learn', ['lesson' => $lesson, 'tab' => 'listening']),
-            );
+        $this->assertSame(['reading', 'writing', 'listening'], StudentProgress::requiredSkillsForListeningLesson($lesson));
+        $this->assertContains('speaking', StudentProgress::availableSkillsForListeningLesson($lesson));
 
-        StudentProgress::masterSkill($student, $lesson, 'listening');
+        StudentProgress::masterListeningLessonSkill($student, $lesson, 'reading');
+        StudentProgress::masterListeningLessonSkill($student, $lesson, 'writing');
+        $mastered = $student->progress()->where('listening_lesson_id', $lesson->listening_lesson_id)->pluck('student_skill_type')->all();
+        $this->assertFalse(StudentProgress::listeningLessonIsComplete($lesson, $mastered));
 
-        $this->actingAs($student)
-            ->get(route('dashboard'))
-            ->assertViewHas('completedCount', 1)
-            ->assertViewHas('completionPct', 100);
+        StudentProgress::masterListeningLessonSkill($student, $lesson, 'listening');
+        $mastered = $student->progress()->where('listening_lesson_id', $lesson->listening_lesson_id)->pluck('student_skill_type')->all();
+        $this->assertTrue(StudentProgress::listeningLessonIsComplete($lesson, $mastered));
     }
 
-    public function test_placement_sets_entry_level_and_server_blocks_the_next_level(): void
-    {
-        $student = $this->makeStudent('B1');
-        $this->makeLesson('A1');
-        $this->makeLesson('A2');
-        $entry = $this->makeLesson('B1');
-        $locked = $this->makeLesson('B2');
-
-        foreach ([$entry, $locked] as $lesson) {
-            ListeningLesson::create([
-                'lesson_id' => $lesson->lesson_id,
-                'cefr_level' => $lesson->lesson_cefr_level,
-                'sub_level' => 1,
-                'title' => $lesson->lesson_cefr_level,
-                'reading_text' => 'Required reading.',
-            ]);
-            $this->makeQuestionnaireActivity($lesson, 'reading', $lesson->lesson_cefr_level.' check');
-        }
-
-        $this->actingAs($student)->get(route('lessons.learn', $entry))->assertOk();
-        $this->actingAs($student)->get(route('lessons.learn', $locked))->assertForbidden();
-        $this->actingAs($student)->get(route('levels.index'))->assertSee('Punto de entrada');
-
-        StudentProgress::masterSkill($student, $entry, 'reading');
-
-        $this->actingAs($student)->get(route('lessons.learn', $locked))->assertOk();
-    }
-
-    public function test_learn_renders_real_content_objective_and_query_tab(): void
+    public function test_learn_defaults_to_the_first_pending_skill_but_allows_free_navigation_within_the_lesson(): void
     {
         $student = $this->makeStudent('A1');
-        $lesson = Lesson::create([
-            'lesson_cefr_level' => 'A1',
-            'lesson_sub_level' => 1,
-            'lesson_prompt_payload' => [
-                'topic' => 'Introductions',
-                'prompt' => 'Introduce yourself clearly.',
-            ],
-        ]);
-        ListeningLesson::create([
-            'lesson_id' => $lesson->lesson_id,
-            'cefr_level' => 'A1',
-            'sub_level' => 1,
-            'title' => 'Personal introductions',
-            'reading_text' => 'My name is Ada.',
-            'listening_script' => 'Listen to Ada.',
-            'speaking_text' => 'My name is Ada.',
-        ]);
-
-        $this->actingAs($student)
-            ->get(route('lessons.learn', ['lesson' => $lesson, 'tab' => 'speaking']))
-            ->assertOk()
-            ->assertSee('Personal introductions')
-            ->assertSee('Introduce yourself clearly.')
-            ->assertSee('My name is Ada.')
-            ->assertSee('Speaking');
-    }
-
-    public function test_learn_selects_the_first_available_tab_when_tab_is_missing_or_invalid(): void
-    {
-        $student = $this->makeStudent('A1');
-        $lesson = $this->makeLesson('A1');
-        ListeningLesson::create([
-            'lesson_id' => $lesson->lesson_id,
-            'cefr_level' => 'A1',
-            'sub_level' => 1,
-            'title' => 'Listening only',
-            'listening_script' => 'Listen carefully.',
-        ]);
+        $unit = $this->makeUnit('A1');
+        $lesson = $this->makeListeningLesson($unit, 1, ['reading', 'writing', 'listening']);
 
         $this->actingAs($student)
             ->get(route('lessons.learn', $lesson))
             ->assertOk()
-            ->assertViewHas('activeTab', 'listening');
+            ->assertViewHas('activeTab', 'reading');
+
+        // Skills inside the active lesson are freely navigable in any order.
         $this->actingAs($student)
-            ->get(route('lessons.learn', ['lesson' => $lesson, 'tab' => 'unknown']))
+            ->get(route('lessons.learn', ['listeningLesson' => $lesson, 'tab' => 'listening']))
             ->assertOk()
             ->assertViewHas('activeTab', 'listening');
-    }
-
-    public function test_fallback_listening_is_evaluable_but_unsendable_speaking_is_not_required(): void
-    {
-        config(['services.gemini.api_key' => null]);
-        $student = $this->makeStudent('A1');
-        $lesson = $this->makeLesson('A1');
-        $content = ListeningLesson::create([
-            'lesson_id' => null,
-            'cefr_level' => 'A1',
-            'sub_level' => 1,
-            'title' => 'Legacy fallback',
-            'speaking_text' => 'Repeat this sentence.',
-            'questions_data' => [['number' => 1, 'text' => 'Complete the phrase']],
-            'answers_data' => [1 => 'hello'],
-        ]);
-
-        $this->assertSame(['listening'], StudentProgress::requiredSkillsForLesson($lesson));
-        $this->assertContains('speaking', StudentProgress::availableSkillsForLesson($lesson));
-
-        $this->actingAs($student)->postJson(route('listening.check', $content), [
-            'answers' => [1 => 'hello'],
-        ])->assertOk()
-            ->assertJsonPath('passed', true)
-            ->assertJsonPath('lesson_completed', true);
-
-        $this->assertDatabaseHas('student_progress', [
-            'student_id' => $student->user_id,
-            'lesson_id' => $lesson->lesson_id,
-            'student_skill_type' => 'listening',
-        ]);
-        $this->assertDatabaseMissing('student_progress', [
-            'student_id' => $student->user_id,
-            'lesson_id' => $lesson->lesson_id,
-            'student_skill_type' => 'speaking',
-        ]);
-    }
-
-    public function test_dashboard_uses_only_evaluable_lessons_at_or_above_placement(): void
-    {
-        $student = $this->makeStudent('B1');
-        $lowerLesson = $this->makeLesson('A1');
-        $this->makeQuestionnaireActivity($lowerLesson, 'reading', 'Lower activity');
-        $textOnly = $this->makeLesson('B1');
-        ListeningLesson::create([
-            'lesson_id' => $textOnly->lesson_id,
-            'cefr_level' => 'B1',
-            'sub_level' => 1,
-            'title' => 'Text only',
-            'reading_text' => 'This has no evaluation.',
-        ]);
-        $evaluable = $this->makeLesson('B1', 2);
-        $this->makeQuestionnaireActivity($evaluable, 'reading', 'Current activity');
 
         $this->actingAs($student)
-            ->get(route('dashboard'))
+            ->get(route('lessons.learn', ['listeningLesson' => $lesson, 'tab' => 'unknown']))
             ->assertOk()
-            ->assertViewHas('totalLessons', 1)
-            ->assertViewHas('completedCount', 0)
-            ->assertViewHas('completionPct', 0);
-
-        StudentProgress::masterSkill($student, $evaluable, 'reading');
-
-        $this->actingAs($student)
-            ->get(route('dashboard'))
-            ->assertViewHas('totalLessons', 1)
-            ->assertViewHas('completedCount', 1)
-            ->assertViewHas('completionPct', 100);
+            ->assertViewHas('activeTab', 'reading');
     }
 
-    public function test_practice_questionnaire_must_belong_to_requested_lesson(): void
+    public function test_practice_check_requires_all_gradable_questions_to_be_answered(): void
     {
         $student = $this->makeStudent('A1');
-        $lesson = $this->makeLesson('A1');
-        $otherLesson = $this->makeLesson('A1', 2);
-        $questionnaire = Questionnaire::create([
-            'lesson_id' => $otherLesson->lesson_id,
-            'title' => 'Foreign questionnaire',
-        ]);
-        $question = Question::create([
-            'questionnaire_id' => $questionnaire->questionnaire_id,
-            'question_type' => 'fill_blank',
-            'question_skill_type' => 'reading',
-            'question_text' => 'Hello ___',
-            'correct_answer' => 'world',
-        ]);
+        $unit = $this->makeUnit('A1');
+        $lesson = $this->makeListeningLesson($unit, 1, ['reading']);
 
         $this->actingAs($student)->postJson(route('lessons.check-practice', $lesson), [
-            'questionnaire_id' => $questionnaire->questionnaire_id,
             'skill' => 'reading',
-            'answers' => [$question->question_id => 'world'],
-        ])->assertForbidden();
+            'answers' => [],
+        ])->assertUnprocessable();
 
         $this->assertDatabaseCount('attempt_logs', 0);
     }
@@ -352,7 +171,7 @@ class LevelsProgressTest extends TestCase
         return $student;
     }
 
-    private function makeLesson(string $level, int $subLevel = 1): Lesson
+    private function makeUnit(string $level, int $subLevel = 1): Lesson
     {
         return Lesson::create([
             'lesson_cefr_level' => $level,
@@ -362,23 +181,47 @@ class LevelsProgressTest extends TestCase
     }
 
     /**
-     * @return array{Questionnaire, Question}
+     * Mirrors the real import shape: one ListeningLesson per pedagogical
+     * lesson, with a single questionnaire mixing all requested skills.
+     *
+     * @param  list<string>  $skills
      */
-    private function makeQuestionnaireActivity(Lesson $lesson, string $skill, string $title): array
-    {
-        $questionnaire = Questionnaire::create([
-            'lesson_id' => $lesson->lesson_id,
-            'title' => $title,
-        ]);
-        $question = Question::create([
-            'questionnaire_id' => $questionnaire->questionnaire_id,
-            'question_type' => $skill === 'listening' ? 'listening' : 'fill_blank',
-            'question_skill_type' => $skill,
-            'question_order' => 1,
-            'question_text' => 'Write answer.',
-            'correct_answer' => 'answer',
+    private function makeListeningLesson(
+        Lesson $unit,
+        int $sortOrder,
+        array $skills,
+        bool $withSpeaking = false,
+    ): ListeningLesson {
+        $listeningLesson = ListeningLesson::create([
+            'lesson_id' => $unit->lesson_id,
+            'cefr_level' => $unit->lesson_cefr_level,
+            'sub_level' => $unit->lesson_sub_level,
+            'title' => "Lesson #{$sortOrder}",
+            'reading_text' => in_array('reading', $skills, true) ? 'Read this text.' : null,
+            'listening_script' => in_array('listening', $skills, true) ? 'Listen to this text.' : null,
+            'speaking_text' => $withSpeaking ? 'Say this text.' : null,
+            'sort_order' => $sortOrder,
         ]);
 
-        return [$questionnaire, $question];
+        $questionnaire = Questionnaire::create([
+            'lesson_id' => $unit->lesson_id,
+            'listening_lesson_id' => $listeningLesson->listening_lesson_id,
+            'title' => "Lesson #{$sortOrder} questionnaire",
+        ]);
+
+        foreach ($skills as $skill) {
+            Question::create([
+                'questionnaire_id' => $questionnaire->questionnaire_id,
+                'question_type' => 'fill_blank',
+                'question_skill_type' => $skill,
+                'question_order' => 1,
+                'question_text' => "Write the {$skill} answer.",
+                'correct_answer' => 'answer',
+            ]);
+        }
+
+        $listeningLesson->setRelation('questionnaire', $questionnaire->load('questions.options'));
+
+        return $listeningLesson;
     }
 }

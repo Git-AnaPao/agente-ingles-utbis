@@ -15,9 +15,6 @@
             'C2' => 'Maestría · Mastery',
         ];
 
-        $nextActivityUrl = $nextLesson ? route('lessons.learn', $nextLesson) : route('levels.index');
-        $nextActivityName = $nextLesson ? ($nextLesson->lesson_prompt_payload['topic'] ?? ('Unidad ' . $nextLesson->lesson_cefr_level . '.' . $nextLesson->lesson_sub_level)) : 'Revisión General';
-
         // Bocado del día de inglés
         $todayBite = [
             'phrase' => 'Break the ice',
