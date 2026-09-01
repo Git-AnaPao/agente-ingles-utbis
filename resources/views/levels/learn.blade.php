@@ -11,6 +11,7 @@
         $practiceBySkill = collect(['reading', 'writing', 'listening'])->mapWithKeys(function (string $skill) use ($questions) {
             $items = $questions
                 ->filter(fn ($question) => $question->question_skill_type === $skill && $question->question_type !== 'speaking')
+                 ->unique('question_id')
                 ->shuffle()
                 ->values()
                 ->map(fn ($question) => [
