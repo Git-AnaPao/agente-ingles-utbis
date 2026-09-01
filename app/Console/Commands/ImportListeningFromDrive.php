@@ -44,7 +44,7 @@ class ImportListeningFromDrive extends Command
         $dryRun = (bool) $this->option('dry-run');
 
         if ($levelFilter !== null && !in_array($levelFilter, self::CEFR_LEVELS, true)) {
-            $this->error("Invalid CEFR level '{$levelFilter}'. Expected: ".implode(', ', self::CEFR_LEVELS).'.');
+            $this->error("Invalid CEFR level '{$levelFilter}'. Expected: " . implode(', ', self::CEFR_LEVELS) . '.');
 
             return self::FAILURE;
         }
@@ -138,7 +138,7 @@ class ImportListeningFromDrive extends Command
                 $totalQuestions += $lessonData['question_count'];
             }
         }
-
+        $this->processResourcesSheet($excelData, $levelFilter, $dryRun);
         if ($audioFolderId && !$dryRun) {
             $this->newLine();
             $this->info('Linking audio files...');
@@ -292,7 +292,7 @@ class ImportListeningFromDrive extends Command
 
                 $matchingOptions = array_filter(
                     $options,
-                    fn (string $option): bool => $this->normalizeAnswer($option) === $this->normalizeAnswer($correctAnswer),
+                    fn(string $option): bool => $this->normalizeAnswer($option) === $this->normalizeAnswer($correctAnswer),
                 );
 
                 if (count($matchingOptions) !== 1) {
@@ -302,7 +302,7 @@ class ImportListeningFromDrive extends Command
             }
 
             if ($type === 'speaking' && mb_strlen($questionText) > self::MAX_SPEAKING_LENGTH) {
-                $this->skipRow($rowNumber, 'speaking prompt exceeds '.self::MAX_SPEAKING_LENGTH.' characters');
+                $this->skipRow($rowNumber, 'speaking prompt exceeds ' . self::MAX_SPEAKING_LENGTH . ' characters');
                 continue;
             }
 
@@ -345,7 +345,7 @@ class ImportListeningFromDrive extends Command
             $lessons[$groupKey]['question_count'] = $qNum;
         }
 
-        usort($lessons, fn ($a, $b) => $a['sub_level'] <=> $b['sub_level'] ?: $a['sort_order'] <=> $b['sort_order']);
+        usort($lessons, fn($a, $b) => $a['sub_level'] <=> $b['sub_level'] ?: $a['sort_order'] <=> $b['sort_order']);
 
         return $lessons;
     }
@@ -414,7 +414,7 @@ class ImportListeningFromDrive extends Command
 
         return array_values(array_filter(
             array_map('trim', $parts),
-            fn (string $option): bool => $option !== '',
+            fn(string $option): bool => $option !== '',
         ));
     }
 
@@ -559,4 +559,142 @@ class ImportListeningFromDrive extends Command
 
         return $query->where('sort_order', $lessonNumber)->first();
     }
+
+    /**
+ * Import Reading, Listening and Speaking resources
+ * from the Resources sheet.
+ */
+private function processResourcesSheet(
+    array $excelData,
+    ?string $levelFilter = null,
+    bool $dryRun = false
+): void {
+    $resourcesSheetName = null;
+
+    foreach (array_keys($excelData) as $sheetName) {
+        if (in_array(
+            strtolower(trim($sheetName)),
+            ['recursos', 'resources'],
+            true
+        )) {
+            $resourcesSheetName = $sheetName;
+            break;
+        }
+    }
+
+    if (!$resourcesSheetName || empty($excelData[$resourcesSheetName])) {
+        $this->warn(
+            "No Resources sheet was found. Reading, Listening and Speaking texts were not imported."
+        );
+
+        return;
+    }
+
+    $this->newLine();
+    $this->info("Processing resources sheet: {$resourcesSheetName}...");
+
+    $rows = $excelData[$resourcesSheetName];
+    $updatedCount = 0;
+
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $cefrLevel = strtoupper(trim(
+            $this->getColumnValue(
+                $row,
+                ['Nivel', 'CEFR', 'level']
+            ) ?? ''
+        ));
+
+        $lessonRaw = $this->getColumnValue(
+            $row,
+            ['Leccion', 'Lección', 'Lesson', 'leccion']
+        );
+
+        $typeRaw = strtoupper(trim(
+            $this->getColumnValue(
+                $row,
+                ['Tipo', 'Resource_Type', 'tipo']
+            ) ?? ''
+        ));
+
+        $content = trim(
+            $this->getColumnValue(
+                $row,
+                ['Contenido', 'Content', 'contenido']
+            ) ?? ''
+        );
+
+        $lessonNumber = $this->extractLessonNumber($lessonRaw);
+
+        if (
+            !$cefrLevel ||
+            !$lessonNumber ||
+            !$typeRaw ||
+            !$content
+        ) {
+            continue;
+        }
+
+        // Respect --level=A1, --level=A2, etc.
+        if ($levelFilter && $cefrLevel !== $levelFilter) {
+            continue;
+        }
+
+        $lesson = ListeningLesson::where(
+            'cefr_level',
+            $cefrLevel
+        )
+            ->where('sort_order', $lessonNumber)
+            ->first();
+
+        if (!$lesson) {
+            $this->warn(
+                "  Lesson not found: {$cefrLevel} - Lesson {$lessonNumber}"
+            );
+
+            continue;
+        }
+
+        if ($dryRun) {
+            $this->line(
+                "  [DRY RUN] {$cefrLevel} Lesson {$lessonNumber}: {$typeRaw}"
+            );
+            $updatedCount++;
+            continue;
+        }
+
+        if (str_contains($typeRaw, 'READING')) {
+            $lesson->update([
+                'reading_text' => $content,
+            ]);
+
+            $updatedCount++;
+        } elseif (str_contains($typeRaw, 'LISTENING')) {
+            $lesson->update([
+                'listening_script' => $content,
+            ]);
+
+            $updatedCount++;
+        } elseif (str_contains($typeRaw, 'SPEAK')) {
+            $lesson->update([
+                'speaking_text' => $content,
+            ]);
+
+            $updatedCount++;
+        }
+    }
+
+    if ($dryRun) {
+        $this->info(
+            "Resources found: {$updatedCount} (dry run, no changes saved)."
+        );
+    } else {
+        $this->info(
+            "Updated {$updatedCount} Reading, Listening and Speaking resources."
+        );
+    }
+}
 }
