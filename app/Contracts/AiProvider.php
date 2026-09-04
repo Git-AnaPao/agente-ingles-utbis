@@ -19,6 +19,7 @@ interface AiProvider
         string $mimeType,
         string $questionText,
         ?string $expectedAnswer = null,
+        string $cefrLevel = 'A1',
     ): array;
 
     /**

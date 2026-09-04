@@ -40,18 +40,34 @@ class GeminiService implements AiProvider
      * @param string|null $expectedAnswer Respuesta esperada o modelo (opcional)
      * @return array{transcription: string, is_correct: bool, feedback: string}
      */
-   public function evaluateSpeakingAudio(
-    string $audioBase64,
-    string $mimeType,
-    string $questionText,
-    ?string $expectedAnswer = null,
-): array {
-    $expectedPart = $expectedAnswer
-        ? "\nREFERENCE TEXT THE STUDENT MUST READ:\n\"{$expectedAnswer}\""
-        : "\nNo reference text was provided.";
+    public function evaluateSpeakingAudio(
 
-    $prompt = <<<PROMPT
+        string $audioBase64,
+        string $mimeType,
+        string $questionText,
+        ?string $expectedAnswer = null,
+        string $cefrLevel = 'A1',
+    ): array {
+        $cefrLevel = strtoupper(trim($cefrLevel));
+
+        if (!in_array($cefrLevel, ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], true)) {
+            $cefrLevel = 'A1';
+        }
+        $levelGuidance = $this->speakingGuidanceForLevel($cefrLevel);
+        $expectedPart = $expectedAnswer
+            ? "\nREFERENCE TEXT THE STUDENT MUST READ:\n\"{$expectedAnswer}\""
+            : "\nNo reference text was provided.";
+
+        $prompt = <<<PROMPT
 You are an English pronunciation evaluator for university students.
+
+The student's CEFR English level is: {$cefrLevel}.
+
+IMPORTANT:
+You must evaluate the student according to CEFR {$cefrLevel} expectations.
+Do NOT judge an A1 learner using B1, B2, C1, or native-speaker standards.
+
+{$levelGuidance}
 
 The student is completing a SPEAKING activity.
 
@@ -62,26 +78,30 @@ TASK:
 
 Listen carefully to the student's audio.
 
-Your job is to evaluate the student's spoken English, especially when reading the provided reference text aloud.
+Your job is to evaluate the student's spoken English while considering
+their CEFR {$cefrLevel} proficiency level.
 
 Evaluate these four criteria from 0 to 100:
 
 1. pronunciation_score
-   - How understandable and accurate the student's English pronunciation is.
+   - How understandable and accurate the student's pronunciation is
+     FOR A {$cefrLevel} LEARNER.
    - Consider individual sounds, word pronunciation, stress, and clarity.
-   - Do not penalize a normal non-native accent if the words remain clearly understandable.
+   - Never penalize a normal non-native accent by itself.
 
 2. fluency_score
-   - How smoothly and naturally the student speaks.
-   - Consider excessive pauses, hesitation, rhythm, and continuity.
+   - Evaluate fluency according to CEFR {$cefrLevel}.
+   - Consider pauses, hesitation, rhythm, continuity, and speaking speed.
+   - Pauses that are normal for this proficiency level should not be heavily penalized.
 
 3. accuracy_score
    - How accurately the spoken words match the reference text.
    - Penalize omitted, substituted, added, or incorrectly read words.
+   - This criterion is based on reading accuracy and is independent of accent.
 
 4. completeness_score
-   - How much of the required reference text the student actually read.
-   - If the student says unrelated content, introduces themselves instead of reading, or reads only a small fragment, this score must be low.
+   - How much of the required reference material the student actually read.
+   - Do not give a high completeness score for unrelated speech.
 
 Calculate overall_score as:
 
@@ -92,23 +112,32 @@ pronunciation_score * 0.40
 
 Round overall_score to the nearest integer.
 
-IMPORTANT PASSING RULE:
-- is_correct = true only when overall_score >= 90.
-- is_correct = false when overall_score < 90.
+PASSING RULE:
+- overall_score >= 90 = approved
+- overall_score < 90 = not approved
 
-Special rules:
-- If the student is silent, is_correct must be false.
-- If the student speaks mostly in another language, is_correct must be false.
-- If the student does not read the requested reference text, accuracy_score and completeness_score must be very low.
-- Do not give a high score merely because the student's English is understandable if they did not perform the requested task.
-- Be appropriate for an English learner. A normal foreign accent by itself is NOT an error.
-- Feedback must identify the most important pronunciation, fluency, accuracy, or completeness issue.
-- Feedback must be in Spanish.
-- Keep feedback concise, supportive, and useful.
+IMPORTANT:
+The 90% threshold represents mastery relative to CEFR {$cefrLevel},
+not native-speaker pronunciation.
 
-Return ONLY valid JSON.
+Examples:
+- An A1 student can receive 90+ with slow but clear beginner-level speech.
+- An A1 student must NOT be penalized for lacking B2-style connected speech.
+- A B2 student should be evaluated with noticeably higher fluency and pronunciation expectations.
+- A C1/C2 student should be evaluated more strictly for rhythm, stress and naturalness.
 
-Use exactly this structure:
+If the student is silent or speaks mostly unrelated content:
+- is_correct must be false.
+- accuracy_score and completeness_score must be very low.
+
+Feedback:
+- Write feedback in Spanish.
+- Mention the student's CEFR level.
+- Be concise, constructive and specific.
+- Point out at most 2 improvements.
+- Do not tell an A1 learner to perform skills expected only at advanced levels.
+
+Return ONLY valid JSON:
 
 {
   "transcription": "Exact transcription of what the student said",
@@ -118,33 +147,33 @@ Use exactly this structure:
   "completeness_score": 0,
   "overall_score": 0,
   "is_correct": false,
-  "feedback": "Retroalimentación breve y específica en español."
+  "feedback": "Retroalimentación breve en español."
 }
 PROMPT;
 
-    $response = $this->callGemini([
-        'contents' => [[
-            'parts' => [
-                [
-                    'text' => $prompt,
-                ],
-                [
-                    'inline_data' => [
-                        'mime_type' => $mimeType,
-                        'data' => $audioBase64,
+        $response = $this->callGemini([
+            'contents' => [[
+                'parts' => [
+                    [
+                        'text' => $prompt,
+                    ],
+                    [
+                        'inline_data' => [
+                            'mime_type' => $mimeType,
+                            'data' => $audioBase64,
+                        ],
                     ],
                 ],
+            ]],
+
+            'generationConfig' => [
+                'temperature' => 0.1,
+                'responseMimeType' => 'application/json',
             ],
-        ]],
+        ]);
 
-        'generationConfig' => [
-            'temperature' => 0.1,
-            'responseMimeType' => 'application/json',
-        ],
-    ]);
-
-    return $this->parseSpeakingResponse($response);
-}
+        return $this->parseSpeakingResponse($response);
+    }
     /**
      * Genera el feedback general de una leccion basado en todos los errores del alumno.
      *
@@ -165,14 +194,14 @@ PROMPT;
         }
         $errorList = '';
         foreach ($errors as $i => $error) {
-            $errorList .= "\n".($i + 1).". Question: \"{$error['question']}\"";
+            $errorList .= "\n" . ($i + 1) . ". Question: \"{$error['question']}\"";
             $errorList .= "\n   Student said/wrote: \"{$error['student_answer']}\"";
             if (!empty($error['feedback'])) {
                 $errorList .= "\n   AI feedback: \"{$error['feedback']}\"";
             }
         }
 
-        $prompt =<<<PROMPT
+        $prompt = <<<PROMPT
 You are a friendly and motivating English teacher.
 
 A student just completed a lesson. Here are the results:
@@ -280,126 +309,201 @@ PROMPT,
         return $decoded;
     }
 
+
+    private function speakingGuidanceForLevel(string $cefrLevel): string
+    {
+        return match ($cefrLevel) {
+            'A1' => <<<TEXT
+CEFR A1 EXPECTATIONS:
+- Evaluate as a beginner English learner.
+- Speech may be slow and carefully articulated.
+- Pauses between phrases are normal and should not be heavily penalized.
+- A noticeable non-native accent is completely acceptable.
+- Focus mainly on whether common words are understandable.
+- Minor stress, rhythm, article, ending, or vowel inaccuracies are acceptable when meaning remains clear.
+- Do not expect natural connected speech.
+- Fluency means being able to continue reading understandably, even with pauses.
+- Give simple and encouraging feedback.
+TEXT,
+
+            'A2' => <<<TEXT
+CEFR A2 EXPECTATIONS:
+- Evaluate as an elementary English learner.
+- Some hesitation and pauses are acceptable.
+- A non-native accent is completely acceptable.
+- Most common words should be clearly understandable.
+- Expect somewhat better control of word endings and common sounds than A1.
+- Basic sentence stress and rhythm should begin to appear.
+- Do not require native-like connected speech.
+- Fluency should allow short groups of words to be spoken without excessive interruption.
+- Feedback should focus on one or two useful improvements.
+TEXT,
+
+            'B1' => <<<TEXT
+CEFR B1 EXPECTATIONS:
+- Evaluate as an intermediate English learner.
+- Speech should generally be clear and understandable.
+- Occasional pronunciation mistakes and hesitation are acceptable.
+- Expect reasonable control of word stress and common English sounds.
+- Expect sentences to be spoken in meaningful groups rather than word by word.
+- Fluency should be reasonably continuous, although pauses for difficult words are acceptable.
+- Rhythm and intonation should support meaning.
+TEXT,
+
+            'B2' => <<<TEXT
+CEFR B2 EXPECTATIONS:
+- Evaluate as an upper-intermediate English learner.
+- Speech should be consistently clear and easy to understand.
+- Expect good word stress, sentence stress, rhythm, and intonation.
+- Occasional pronunciation mistakes are acceptable if communication is not affected.
+- Speech should normally flow in phrases with limited unnatural hesitation.
+- Expect some natural linking and connected speech.
+- Do not require a native accent.
+TEXT,
+
+            'C1' => <<<TEXT
+CEFR C1 EXPECTATIONS:
+- Evaluate as an advanced English learner.
+- Pronunciation should be consistently clear and precise.
+- Expect strong control of stress, rhythm, intonation, and connected speech.
+- Hesitation should be limited and normally related to complex language.
+- Minor accent features are acceptable and must not reduce the score simply for being non-native.
+- Speech should sound natural, fluent, and expressive.
+TEXT,
+
+            'C2' => <<<TEXT
+CEFR C2 EXPECTATIONS:
+- Evaluate as a highly proficient English speaker.
+- Speech should be effortless, precise, highly intelligible, and natural.
+- Expect excellent control of individual sounds, stress, rhythm, intonation, linking, and connected speech.
+- Hesitation should be minimal.
+- A non-native accent is acceptable when pronunciation remains highly clear and natural.
+- Evaluate subtle pronunciation and fluency issues more strictly than at lower CEFR levels.
+TEXT,
+
+            default => '',
+        };
+    }
     /**
      * Parsea la respuesta de evaluateSpeakingAudio.
      */
-   private function parseSpeakingResponse(array $response): array
-{
-    $text = $this->responseText($response, 'speaking evaluation');
-    $text = trim($text);
+    private function parseSpeakingResponse(array $response): array
+    {
+        $text = $this->responseText($response, 'speaking evaluation');
+        $text = trim($text);
 
-    // Por seguridad, quitar bloques ```json ... ```
-    if (str_starts_with($text, '```')) {
-        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
-        $text = preg_replace('/\s*```$/', '', $text);
-    }
+        // Por seguridad, quitar bloques ```json ... ```
+        if (str_starts_with($text, '```')) {
+            $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+            $text = preg_replace('/\s*```$/', '', $text);
+        }
 
-    try {
-        $decoded = json_decode(
-            $text,
-            true,
-            512,
-            JSON_THROW_ON_ERROR
+        try {
+            $decoded = json_decode(
+                $text,
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (JsonException $exception) {
+            Log::warning(
+                'Gemini returned invalid JSON for speaking evaluation',
+                [
+                    'raw' => $text,
+                ]
+            );
+
+            throw new UnexpectedValueException(
+                'Gemini returned invalid JSON for speaking evaluation.',
+                0,
+                $exception,
+            );
+        }
+
+        if (!is_array($decoded)) {
+            throw new UnexpectedValueException(
+                'Gemini returned an invalid speaking evaluation.'
+            );
+        }
+
+        if (
+            !is_string($decoded['transcription'] ?? null)
+            || !is_string($decoded['feedback'] ?? null)
+        ) {
+            throw new UnexpectedValueException(
+                'Gemini returned an incomplete speaking evaluation.'
+            );
+        }
+
+        $pronunciationScore = $this->normalizeScore(
+            $decoded['pronunciation_score'] ?? null,
+            'pronunciation_score'
         );
-    } catch (JsonException $exception) {
-        Log::warning(
-            'Gemini returned invalid JSON for speaking evaluation',
-            [
-                'raw' => $text,
-            ]
+
+        $fluencyScore = $this->normalizeScore(
+            $decoded['fluency_score'] ?? null,
+            'fluency_score'
         );
 
-        throw new UnexpectedValueException(
-            'Gemini returned invalid JSON for speaking evaluation.',
-            0,
-            $exception,
+        $accuracyScore = $this->normalizeScore(
+            $decoded['accuracy_score'] ?? null,
+            'accuracy_score'
         );
-    }
 
-    if (!is_array($decoded)) {
-        throw new UnexpectedValueException(
-            'Gemini returned an invalid speaking evaluation.'
+        $completenessScore = $this->normalizeScore(
+            $decoded['completeness_score'] ?? null,
+            'completeness_score'
         );
-    }
 
-    if (
-        !is_string($decoded['transcription'] ?? null)
-        || !is_string($decoded['feedback'] ?? null)
-    ) {
-        throw new UnexpectedValueException(
-            'Gemini returned an incomplete speaking evaluation.'
-        );
-    }
-
-    $pronunciationScore = $this->normalizeScore(
-        $decoded['pronunciation_score'] ?? null,
-        'pronunciation_score'
-    );
-
-    $fluencyScore = $this->normalizeScore(
-        $decoded['fluency_score'] ?? null,
-        'fluency_score'
-    );
-
-    $accuracyScore = $this->normalizeScore(
-        $decoded['accuracy_score'] ?? null,
-        'accuracy_score'
-    );
-
-    $completenessScore = $this->normalizeScore(
-        $decoded['completeness_score'] ?? null,
-        'completeness_score'
-    );
-
-    /*
+        /*
      * Calculamos nosotros el resultado final.
      *
      * No confiamos únicamente en el overall_score enviado
      * por Gemini para que la regla del sistema sea determinista.
      */
-    $overallScore = (int) round(
-        ($pronunciationScore * 0.40)
-        + ($fluencyScore * 0.20)
-        + ($accuracyScore * 0.25)
-        + ($completenessScore * 0.15)
-    );
+        $overallScore = (int) round(
+            ($pronunciationScore * 0.40)
+                + ($fluencyScore * 0.20)
+                + ($accuracyScore * 0.25)
+                + ($completenessScore * 0.15)
+        );
 
-    /*
+        /*
      * La regla de aprobación pertenece a Laravel,
      * no a Gemini.
      */
-    $isCorrect = $overallScore >= 90;
+        $isCorrect = $overallScore >= 90;
 
-    return [
-        'transcription' => trim($decoded['transcription']),
+        return [
+            'transcription' => trim($decoded['transcription']),
 
-        'pronunciation_score' => $pronunciationScore,
+            'pronunciation_score' => $pronunciationScore,
 
-        'fluency_score' => $fluencyScore,
+            'fluency_score' => $fluencyScore,
 
-        'accuracy_score' => $accuracyScore,
+            'accuracy_score' => $accuracyScore,
 
-        'completeness_score' => $completenessScore,
+            'completeness_score' => $completenessScore,
 
-        'overall_score' => $overallScore,
+            'overall_score' => $overallScore,
 
-        'is_correct' => $isCorrect,
+            'is_correct' => $isCorrect,
 
-        'feedback' => trim($decoded['feedback']),
-    ];
-}
-private function normalizeScore(mixed $value, string $field): int
-{
-    if (!is_numeric($value)) {
-        throw new UnexpectedValueException(
-            "Gemini returned an invalid {$field}."
-        );
+            'feedback' => trim($decoded['feedback']),
+        ];
     }
+    private function normalizeScore(mixed $value, string $field): int
+    {
+        if (!is_numeric($value)) {
+            throw new UnexpectedValueException(
+                "Gemini returned an invalid {$field}."
+            );
+        }
 
-    $score = (int) round((float) $value);
+        $score = (int) round((float) $value);
 
-    return max(0, min(100, $score));
-}
+        return max(0, min(100, $score));
+    }
 
 
     private function responseText(array $response, string $purpose): string

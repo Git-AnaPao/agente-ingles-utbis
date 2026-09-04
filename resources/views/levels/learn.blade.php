@@ -606,7 +606,7 @@
                 statusMessage: '',
 
                 skillState: {},
-                maxSpeakingSeconds: 360,
+                maxSpeakingSeconds: 120,
                 speaking: {
                     recording: false,
                     loading: false,

@@ -80,8 +80,8 @@ class LevelController extends Controller
                 ];
             }
 
-            $completedCount = count(array_filter($lessonRows, fn (array $row): bool => $row['completed']));
-            $evaluableCount = count(array_filter($lessonRows, fn (array $row): bool => $row['evaluable']));
+            $completedCount = count(array_filter($lessonRows, fn(array $row): bool => $row['completed']));
+            $evaluableCount = count(array_filter($lessonRows, fn(array $row): bool => $row['evaluable']));
             $levelComplete = $evaluableCount > 0 && $completedCount === $evaluableCount;
             $isUnlocked = in_array($cefr, $unlockedLevels, true);
 
@@ -131,7 +131,7 @@ class LevelController extends Controller
         // pending one so the page has something sensible to show by default.
         $requestedTab = $request->query('tab');
         $pendingSkill = collect($availableSkills)->first(
-            fn (string $skill): bool => ! in_array($skill, $masteredSkills, true),
+            fn(string $skill): bool => ! in_array($skill, $masteredSkills, true),
         );
         $activeTab = (is_string($requestedTab) && in_array($requestedTab, $availableSkills, true))
             ? $requestedTab
@@ -205,9 +205,9 @@ class LevelController extends Controller
 
             $next = $nextCefr
                 ? ListeningLesson::query()
-                    ->where('cefr_level', $nextCefr)
-                    ->orderBy('sort_order')
-                    ->first()
+                ->where('cefr_level', $nextCefr)
+                ->orderBy('sort_order')
+                ->first()
                 : null;
         }
 
@@ -232,7 +232,7 @@ class LevelController extends Controller
 
         $skill = $validated['skill'];
         $questions = $questionnaire->questions
-            ->filter(fn ($question): bool => $question->question_skill_type === $skill
+            ->filter(fn($question): bool => $question->question_skill_type === $skill
                 && $question->question_type !== 'speaking')
             ->values();
 
@@ -243,7 +243,7 @@ class LevelController extends Controller
         }
 
         $missing = $questions->pluck('question_id')->filter(
-            fn (string $id): bool => ! array_key_exists($id, $validated['answers'])
+            fn(string $id): bool => ! array_key_exists($id, $validated['answers'])
                 || trim((string) $validated['answers'][$id]) === '',
         );
 
@@ -325,6 +325,7 @@ class LevelController extends Controller
                 mimeType: $validated['mime_type'] ?? 'audio/webm',
                 questionText: "Read this text aloud: {$listeningLesson->speaking_text}",
                 expectedAnswer: $listeningLesson->speaking_text,
+                cefrLevel: $listeningLesson->cefr_level,
             );
         } catch (Throwable $exception) {
             report($exception);
@@ -440,5 +441,4 @@ class LevelController extends Controller
             'Esta lección todavía está bloqueada. Completa la lección anterior primero.',
         );
     }
-
 }
