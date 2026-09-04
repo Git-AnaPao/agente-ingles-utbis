@@ -358,7 +358,7 @@ class LevelController extends Controller
                 'attempt_skill_type' => 'speaking',
                 'questionnaire_id' => $listeningLesson->questionnaire?->questionnaire_id,
                 'listening_lesson_id' => $listeningLesson->listening_lesson_id,
-                'attempt_score' => $isCorrect ? 100 : 0,
+                'attempt_score' => (float) ($result['overall_score'] ?? ($isCorrect ? 100 : 0)),
                 'ai_feedback' => (string) ($result['feedback'] ?? ''),
                 'passed' => $isCorrect,
             ]);

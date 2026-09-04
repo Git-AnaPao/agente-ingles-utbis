@@ -586,14 +586,48 @@ class StudentProgress extends Model
     /**
      * @return list<string>
      */
-    public static function requiredSkillsForListeningLesson(ListeningLesson $listeningLesson): array
-    {
-        return array_values(array_filter(
-            self::REQUIRED_LISTENING_LESSON_SKILLS,
-            fn (string $skill): bool => self::evaluableQuestionsForListeningLessonSkill($listeningLesson, $skill)->isNotEmpty(),
-        ));
+   public static function requiredSkillsForListeningLesson(
+    ListeningLesson $listeningLesson
+): array {
+    $required = [];
+
+    if (
+        self::evaluableQuestionsForListeningLessonSkill(
+            $listeningLesson,
+            'reading'
+        )->isNotEmpty()
+    ) {
+        $required[] = 'reading';
     }
 
+    if (
+        self::evaluableQuestionsForListeningLessonSkill(
+            $listeningLesson,
+            'writing'
+        )->isNotEmpty()
+    ) {
+        $required[] = 'writing';
+    }
+
+    if (
+        self::evaluableQuestionsForListeningLessonSkill(
+            $listeningLesson,
+            'listening'
+        )->isNotEmpty()
+    ) {
+        $required[] = 'listening';
+    }
+
+    /*
+     * Speaking es obligatorio siempre que la lección
+     * tenga un texto de Speaking configurado.
+     */
+    if (self::hasText($listeningLesson->speaking_text)) {
+        $required[] = 'speaking';
+    }
+
+    return $required;
+}
     /**
      * @param  iterable<int, string|StudentProgress>  $masteredSkills
      */

@@ -40,53 +40,111 @@ class GeminiService implements AiProvider
      * @param string|null $expectedAnswer Respuesta esperada o modelo (opcional)
      * @return array{transcription: string, is_correct: bool, feedback: string}
      */
-    public function evaluateSpeakingAudio(
-        string $audioBase64,
-        string $mimeType,
-        string $questionText,
-        ?string $expectedAnswer = null,
-    ): array {
-        $expectedPart = $expectedAnswer
-            ? "\n- Expected answer (model): \"{$expectedAnswer}\""
-            : '';
+   public function evaluateSpeakingAudio(
+    string $audioBase64,
+    string $mimeType,
+    string $questionText,
+    ?string $expectedAnswer = null,
+): array {
+    $expectedPart = $expectedAnswer
+        ? "\nREFERENCE TEXT THE STUDENT MUST READ:\n\"{$expectedAnswer}\""
+        : "\nNo reference text was provided.";
 
-        $prompt =<<<PROMPT
-You are an English teacher evaluating a student's spoken response.
+    $prompt = <<<PROMPT
+You are an English pronunciation evaluator for university students.
 
-Question asked to the student: "{$questionText}"
+The student is completing a SPEAKING activity.
+
+TASK:
+"{$questionText}"
+
 {$expectedPart}
 
-Analyze the audio and respond with ONLY a valid JSON object (no markdown, no code fences):
+Listen carefully to the student's audio.
+
+Your job is to evaluate the student's spoken English, especially when reading the provided reference text aloud.
+
+Evaluate these four criteria from 0 to 100:
+
+1. pronunciation_score
+   - How understandable and accurate the student's English pronunciation is.
+   - Consider individual sounds, word pronunciation, stress, and clarity.
+   - Do not penalize a normal non-native accent if the words remain clearly understandable.
+
+2. fluency_score
+   - How smoothly and naturally the student speaks.
+   - Consider excessive pauses, hesitation, rhythm, and continuity.
+
+3. accuracy_score
+   - How accurately the spoken words match the reference text.
+   - Penalize omitted, substituted, added, or incorrectly read words.
+
+4. completeness_score
+   - How much of the required reference text the student actually read.
+   - If the student says unrelated content, introduces themselves instead of reading, or reads only a small fragment, this score must be low.
+
+Calculate overall_score as:
+
+pronunciation_score * 0.40
++ fluency_score * 0.20
++ accuracy_score * 0.25
++ completeness_score * 0.15
+
+Round overall_score to the nearest integer.
+
+IMPORTANT PASSING RULE:
+- is_correct = true only when overall_score >= 90.
+- is_correct = false when overall_score < 90.
+
+Special rules:
+- If the student is silent, is_correct must be false.
+- If the student speaks mostly in another language, is_correct must be false.
+- If the student does not read the requested reference text, accuracy_score and completeness_score must be very low.
+- Do not give a high score merely because the student's English is understandable if they did not perform the requested task.
+- Be appropriate for an English learner. A normal foreign accent by itself is NOT an error.
+- Feedback must identify the most important pronunciation, fluency, accuracy, or completeness issue.
+- Feedback must be in Spanish.
+- Keep feedback concise, supportive, and useful.
+
+Return ONLY valid JSON.
+
+Use exactly this structure:
+
 {
-  "transcription": "What the student actually said",
-  "is_correct": true/false,
-  "feedback": "One short sentence (max 30 words) with specific correction or praise"
+  "transcription": "Exact transcription of what the student said",
+  "pronunciation_score": 0,
+  "fluency_score": 0,
+  "accuracy_score": 0,
+  "completeness_score": 0,
+  "overall_score": 0,
+  "is_correct": false,
+  "feedback": "Retroalimentación breve y específica en español."
 }
-
-Rules for is_correct:
-- true if the student communicated the correct idea, even with minor grammar/vocabulary errors
-- false if the meaning is completely wrong, the student stayed silent, or spoke a different language
-
-Keep feedback constructive and specific (e.g. "Remember to use 'am' before 'fine': 'I am fine'").
 PROMPT;
 
-        $response = $this->callGemini([
-            'contents' => [[
-                'parts' => [
-                    ['text' => $prompt],
-                    [
-                        'inline_data' => [
-                            'mime_type' => $mimeType,
-                            'data' => $audioBase64,
-                        ],
+    $response = $this->callGemini([
+        'contents' => [[
+            'parts' => [
+                [
+                    'text' => $prompt,
+                ],
+                [
+                    'inline_data' => [
+                        'mime_type' => $mimeType,
+                        'data' => $audioBase64,
                     ],
                 ],
-            ]],
-        ]);
+            ],
+        ]],
 
-        return $this->parseSpeakingResponse($response);
-    }
+        'generationConfig' => [
+            'temperature' => 0.1,
+            'responseMimeType' => 'application/json',
+        ],
+    ]);
 
+    return $this->parseSpeakingResponse($response);
+}
     /**
      * Genera el feedback general de una leccion basado en todos los errores del alumno.
      *
@@ -196,8 +254,8 @@ PROMPT,
         $response = null;
 
         try {
-            $response = Http::connectTimeout(5)
-                ->timeout(20)
+            $response = Http::connectTimeout(15)
+                ->timeout(180)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'x-goog-api-key' => $this->apiKey,
@@ -225,43 +283,124 @@ PROMPT,
     /**
      * Parsea la respuesta de evaluateSpeakingAudio.
      */
-    private function parseSpeakingResponse(array $response): array
-    {
-        $text = $this->responseText($response, 'speaking evaluation');
+   private function parseSpeakingResponse(array $response): array
+{
+    $text = $this->responseText($response, 'speaking evaluation');
+    $text = trim($text);
 
-        $text = trim($text);
-        if (str_starts_with($text, '```')) {
-            $text = preg_replace('/^```(?:json)?\s*/', '', $text);
-            $text = preg_replace('/\s*```$/', '', $text);
-        }
-
-        try {
-            $decoded = json_decode($text, true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
-            Log::warning('Gemini returned invalid JSON for speaking evaluation', ['raw' => $text]);
-
-            throw new UnexpectedValueException(
-                'Gemini returned invalid JSON for speaking evaluation.',
-                0,
-                $exception,
-            );
-        }
-
-        if (
-            ! is_array($decoded)
-            || ! is_string($decoded['transcription'] ?? null)
-            || ! is_bool($decoded['is_correct'] ?? null)
-            || ! is_string($decoded['feedback'] ?? null)
-        ) {
-            throw new UnexpectedValueException('Gemini returned an incomplete speaking evaluation.');
-        }
-
-        return [
-            'transcription' => $decoded['transcription'],
-            'is_correct' => $decoded['is_correct'],
-            'feedback' => $decoded['feedback'],
-        ];
+    // Por seguridad, quitar bloques ```json ... ```
+    if (str_starts_with($text, '```')) {
+        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```$/', '', $text);
     }
+
+    try {
+        $decoded = json_decode(
+            $text,
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+    } catch (JsonException $exception) {
+        Log::warning(
+            'Gemini returned invalid JSON for speaking evaluation',
+            [
+                'raw' => $text,
+            ]
+        );
+
+        throw new UnexpectedValueException(
+            'Gemini returned invalid JSON for speaking evaluation.',
+            0,
+            $exception,
+        );
+    }
+
+    if (!is_array($decoded)) {
+        throw new UnexpectedValueException(
+            'Gemini returned an invalid speaking evaluation.'
+        );
+    }
+
+    if (
+        !is_string($decoded['transcription'] ?? null)
+        || !is_string($decoded['feedback'] ?? null)
+    ) {
+        throw new UnexpectedValueException(
+            'Gemini returned an incomplete speaking evaluation.'
+        );
+    }
+
+    $pronunciationScore = $this->normalizeScore(
+        $decoded['pronunciation_score'] ?? null,
+        'pronunciation_score'
+    );
+
+    $fluencyScore = $this->normalizeScore(
+        $decoded['fluency_score'] ?? null,
+        'fluency_score'
+    );
+
+    $accuracyScore = $this->normalizeScore(
+        $decoded['accuracy_score'] ?? null,
+        'accuracy_score'
+    );
+
+    $completenessScore = $this->normalizeScore(
+        $decoded['completeness_score'] ?? null,
+        'completeness_score'
+    );
+
+    /*
+     * Calculamos nosotros el resultado final.
+     *
+     * No confiamos únicamente en el overall_score enviado
+     * por Gemini para que la regla del sistema sea determinista.
+     */
+    $overallScore = (int) round(
+        ($pronunciationScore * 0.40)
+        + ($fluencyScore * 0.20)
+        + ($accuracyScore * 0.25)
+        + ($completenessScore * 0.15)
+    );
+
+    /*
+     * La regla de aprobación pertenece a Laravel,
+     * no a Gemini.
+     */
+    $isCorrect = $overallScore >= 90;
+
+    return [
+        'transcription' => trim($decoded['transcription']),
+
+        'pronunciation_score' => $pronunciationScore,
+
+        'fluency_score' => $fluencyScore,
+
+        'accuracy_score' => $accuracyScore,
+
+        'completeness_score' => $completenessScore,
+
+        'overall_score' => $overallScore,
+
+        'is_correct' => $isCorrect,
+
+        'feedback' => trim($decoded['feedback']),
+    ];
+}
+private function normalizeScore(mixed $value, string $field): int
+{
+    if (!is_numeric($value)) {
+        throw new UnexpectedValueException(
+            "Gemini returned an invalid {$field}."
+        );
+    }
+
+    $score = (int) round((float) $value);
+
+    return max(0, min(100, $score));
+}
+
 
     private function responseText(array $response, string $purpose): string
     {
