@@ -33,7 +33,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'user_last_name' => ['required', 'string', 'max:255'],
             'user_middle_name' => ['nullable', 'string', 'max:255'],
-            'user_cel' => ['required', 'regex:/^[0-9]{7,12}$/', 'unique:users,user_cel'],
+            'user_cel' => ['nullable', 'regex:/^[0-9]{7,12}$/', 'unique:users,user_cel'],
             'email' => [
                 'bail',
                 'required',

@@ -91,47 +91,14 @@
                 </h1>
             </header>
 
-            {{-- Sendero horizontal de lecciones de la unidad: bloqueo estricto entre lecciones --}}
-            @if (count($lessonPath) > 1)
-            <nav class="flex gap-2 overflow-x-auto pb-1 scrollbar-none" aria-label="Lecciones de la unidad">
-                @foreach ($lessonPath as $node)
-                @php $ll = $node['listeningLesson']; @endphp
-                @if ($node['current'])
-                <span class="px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 border-2 inline-flex items-center gap-1.5 bg-emerald-500 text-white border-emerald-500 shadow-md"
-                    aria-current="page">
-                    <span class="font-mono text-[11px]">#{{ $node['number'] }}</span>
-                    <span class="max-w-[140px] truncate">{{ $ll->title }}</span>
-                </span>
-                @elseif ($node['completed'] || $node['unlocked'])
-                <a href="{{ route('lessons.learn', $ll) }}"
-                    class="px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 border inline-flex items-center gap-1.5 hover:border-emerald-500 transition-colors"
-                    style="background: var(--color-card); border-color: var(--color-border); color: var(--color-text-secondary);">
-                    <span class="font-mono text-[11px]">#{{ $node['number'] }}</span>
-                    @if ($node['completed'])
-                    <x-icon name="check" class="w-3 h-3 text-emerald-500" />
-                    @endif
-                    <span class="max-w-[140px] truncate">{{ $ll->title }}</span>
-                </a>
-                @else
-                <span class="px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 border inline-flex items-center gap-1.5 opacity-50 cursor-not-allowed"
-                    style="background: var(--color-bg); border-color: var(--color-border); color: var(--color-text-secondary);"
-                    title="Completa la lección anterior para desbloquear #{{ $node['number'] }}">
-                    <x-icon name="lock" class="w-3 h-3" />
-                    <span class="font-mono text-[11px]">#{{ $node['number'] }}</span>
-                </span>
-                @endif
-                @endforeach
-            </nav>
-            @endif
-
             {{-- Barra de progreso de ESTA lección --}}
             <div class="glass-card p-4 border" style="border-color: var(--color-glass-border);">
                 <div class="flex items-center justify-between text-xs font-bold mb-1.5">
                     <span style="color: var(--color-text);">Progreso de la Lección{{ $currentNumber ? ' #'.$currentNumber : '' }}</span>
-                    <span class="font-mono text-emerald-600 dark:text-emerald-400">{{ $activitiesDone }}/{{ $activitiesTotal }} pasos</span>
+                    <span class="font-mono text-emerald-600 dark:text-emerald-400"><span x-text="stepsDone"></span>/<span x-text="stepsTotal"></span> pasos</span>
                 </div>
-                <div class="progress-bar h-3" role="progressbar" aria-valuenow="{{ $activitiesTotal > 0 ? round($activitiesDone / $activitiesTotal * 100) : 0 }}" aria-valuemin="0" aria-valuemax="100">
-                    <div class="progress-bar-fill" style="width: {{ $activitiesTotal > 0 ? round($activitiesDone / $activitiesTotal * 100) : 0 }}%;"></div>
+                <div class="progress-bar h-3" role="progressbar" :aria-valuenow="progressPercent" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar-fill" :style="'width: ' + progressPercent + '%;'"></div>
                 </div>
             </div>
 
@@ -656,6 +623,15 @@
 
                 get stepIndex() {
                     return Math.max(0, this.availableSkills.indexOf(this.activeTab));
+                },
+                get stepsTotal() {
+                    return this.availableSkills.length;
+                },
+                get stepsDone() {
+                    return this.availableSkills.filter((skill) => this.masteredSkills.has(skill)).length;
+                },
+                get progressPercent() {
+                    return this.stepsTotal > 0 ? Math.round((this.stepsDone / this.stepsTotal) * 100) : 0;
                 },
                 get currentQuestions() {
                     return this.practiceBySkill[this.activeTab] || [];

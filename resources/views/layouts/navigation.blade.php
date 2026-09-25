@@ -19,8 +19,8 @@
     $gamificationService = app(\App\Services\GamificationService::class);
     $gamification = $currentUser ? $gamificationService->snapshot($currentUser) : [];
     $streak = $gamification['current_streak'] ?? 0;
-    $totalXp = $gamification['total_xp'] ?? 0;
-    $levelInfo = $gamification['level'] ?? ['level' => 1];
+    $totalXp = $currentUser?->xp ?? 0;
+    $levelInfo = $currentUser ? $gamificationService->levelForXp($totalXp) : ['level' => 1];
     
     // Nivel CEFR
     $placement = $currentUser ? \App\Models\StudentProgress::latestPlacementFor($currentUser) : null;
